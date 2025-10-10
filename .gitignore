@@ -1,0 +1,56 @@
+# Composer
+/vendor/
+composer.lock
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Upload directories
+/uploads/
+/data/
+uploads/photos/
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database
+*.sql
+*.db
+
+# Backup files
+*.bak
+*.backup
+
+# Node modules (falls vorhanden)
+node_modules/
+
+# Build artifacts
+build/
+dist/
+
+/.history

@@ -1,0 +1,18 @@
+{
+    "name": "proudcommerce/picturewall",
+    "description": "Event Photo Collection and Display System",
+    "type": "project",
+    "require": {
+        "php": ">=8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Picturewall\\": "src/"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "php -r \"if (!file_exists('uploads/photos')) { mkdir('uploads/photos', 0755, true); }\""
+        ]
+    }
+}

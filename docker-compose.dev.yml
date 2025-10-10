@@ -1,0 +1,60 @@
+services:
+  web:
+    image: php:8.4-apache
+    ports:
+      - "4000:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+    depends_on:
+      - db
+    restart: always
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y libzip-dev zip unzip libpng-dev libjpeg-dev libfreetype6-dev libwebp-dev libxpm-dev libheif-dev imagemagick libmagickwand-dev &&
+      docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-xpm &&
+      docker-php-ext-install pdo pdo_mysql mysqli gd exif zip &&
+      pecl install imagick &&
+      docker-php-ext-enable imagick &&
+      echo 'upload_max_filesize = 10G' >> /usr/local/etc/php/conf.d/uploads.ini &&
+      echo 'post_max_size = 10G' >> /usr/local/etc/php/conf.d/uploads.ini &&
+      echo 'max_file_uploads = 20' >> /usr/local/etc/php/conf.d/uploads.ini &&
+      echo 'max_execution_time = 300' >> /usr/local/etc/php/conf.d/uploads.ini &&
+      echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/uploads.ini &&
+      a2enmod rewrite &&
+      apache2-foreground
+      "
+  
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    platform: linux/amd64
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASS}
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    restart: always
+
+volumes:
+  mariadb_data:
