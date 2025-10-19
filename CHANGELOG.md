@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.8.0] - 2025-10-17
+
+- Restore-Funktion nur Datenbank
+
+## [1.7.0] - 2025-10-15
+
+- Funktion zur Deaktivierung des Uploads
+- Docker- und Datenbanksetup überarbeitet
+- Backup- und Restore-Funktion integriert
+- Demo-Event bei Erstinstallation hinzugefügt
+- README aktualisiert
+
+## [1.6.2] - 2025-10-13
+
+- Galerie für Smartphones optimiert
+
+## [1.6.1] - 2025-10-13
+
+- Bild-Moderation wenn bei aktiver GPS-Prüfung keine Koordinaten gefunden werden
+
+## [1.6.0] - 2025-10-11
+
+- QR-Code für Display (optional)
+- Bildrotation bei der Fotoverwaltung
+- Umfassende Tests implementiert
+
+## [1.5.1] - 2025-10-10
+
+- GPS-Prüfung korrigiert
+- Performance-Verbesserungen
+
 ## [1.5.0] - 2025-10-10
 
 - Bildmoderation (optional)

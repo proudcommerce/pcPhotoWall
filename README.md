@@ -1,309 +1,804 @@
-# Picturewall
+# 📸 PC PhotoWall
 
-Ein Event-Foto-Sammlung und Display-System für Veranstaltungen mit GPS-Validierung und Live-Display.
+[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4.svg)](https://www.php.net/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+[![Tests](https://img.shields.io/badge/tests-passing-success.svg)](tests/)
 
-## Features
+---
 
-- **Event-Management**: Erstelle und verwalte Events mit GPS-Koordinaten und Radius
-- **Foto-Upload**: Drag & Drop Upload mit GPS-Validierung und automatischem Upload
-- **Live-Display**: Automatische Foto-Anzeige mit konfigurierbaren Einstellungen
-- **Galerie**: Event-spezifische Galerie mit Thumbnails
-- **Bildmoderation**: Optional aktivierbare Moderation für Uploads
-- **Admin-Interface**: Vollständige Verwaltung über Web-Interface
-- **Responsive Design**: Mobile-optimiert für alle Geräte
-- **Duplikat-Erkennung**: Automatische Erkennung basierend auf Datei-Hash
-- **Sicherheit**: CSRF-Schutz und sichere Session-Verwaltung
+## ✨ Features
 
-## Technische Details
+- 📱 **Event-basierter Upload** - Nutzer laden Fotos zu spezifischen Events hoch
+- 🌍 **GPS-Validierung** - Optional: Nur Fotos vom Event-Ort zulassen
+- 🖼️ **Live-Display** - Automatische Slideshow mit konfigurierbaren Modi
+- 🎨 **Galerie-Ansicht** - Responsive Grid-Layout für alle Geräte
+- ✅ **Foto-Moderation** - Optional: Manuelle Freigabe von Uploads
+- 🔄 **Duplikat-Erkennung** - Automatisch via SHA-256 Hash
+- 📐 **Auto-Rotation** - EXIF-basierte Bildausrichtung
+- 🔗 **QR-Codes** - Automatische QR-Code-Generierung pro Event
+- 🎯 **Multi-Format** - JPEG, PNG, GIF, WebP, HEIC/HEIF
 
-- **Backend**: PHP 8.4+ mit MySQL/MariaDB
-- **Frontend**: Vanilla JavaScript, CSS3
-- **Container**: Docker mit Apache und MariaDB
-- **Entwicklung**: phpMyAdmin für Datenbankverwaltung
-- **Upload**: Unterstützt JPG, PNG, GIF, WebP, HEIC, HEIF
-- **GPS**: Automatische GPS-Koordinaten-Validierung
-- **Bildverarbeitung**: ImageMagick für Thumbnails und Konvertierung
+---
 
-## Installation
+## 📋 Inhaltsverzeichnis
 
-### Voraussetzungen
+- [Übersicht](#-features)
+- [Quick Start](#-quick-start)
+- [Screenshots](#-screenshots)
+- [Featuredetails](#-featuredetails)
+- [Konfiguration](#-konfiguration)
+- [Verwendung](#-verwendung)
+- [Display Modi](#-display-modi)
+- [Backup & Restore](#-backup--restore)
+- [Make-Befehle](#️-make-befehle)
+- [Troubleshooting](#-troubleshooting)
+- [Lizenz](#-lizenz)
 
-- Docker und Docker Compose
-- Make (optional, für einfache Befehle)
+---
 
-### Setup
+## 🚀 Quick Start
 
-1. **Repository klonen**
-   ```bash
-   git clone https://github.com/proudcommerce/event-picturewall.git
-   cd picturewall
-   ```
-
-2. **Umgebungsvariablen konfigurieren**
-   ```bash
-   make setup
-   # oder manuell:
-   cp .env.example .env
-   ```
-
-3. **Projekt starten**
-   ```bash
-   # Produktionsumgebung
-   make up
-   # oder manuell:
-   docker-compose up -d
-   
-   # Entwicklungsumgebung (mit phpMyAdmin)
-   make dev-up
-   # oder manuell:
-   docker-compose -f docker-compose.dev.yml up -d
-   ```
-
-4. **Zugriff**
-   - Hauptseite: http://localhost:4000
-   - Admin-Bereich: http://localhost:4000/admin/
-   - Display-Modus: http://localhost:4000/display.php
-   - **phpMyAdmin** (nur Dev): http://localhost:8081
-
-## Konfiguration
-
-### Umgebungsvariablen (.env)
-
-```env
-# Datenbank
-DB_HOST=db
-DB_NAME=picturewall
-DB_USER=picturewall
-DB_PASS=picturewall
-MYSQL_ROOT_PASSWORD=picturewall
-
-# App
-APP_NAME=Picturewall
-APP_URL=http://localhost:4000
-APP_ENV=development
-ADMIN_PASSWORD=admin123
-
-# Upload
-UPLOAD_ALLOWED_TYPES=image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif
-```
-
-### Event-Konfiguration
-
-Jedes Event kann individuell konfiguriert werden:
-
-- **GPS-Validierung**: Erforderlich oder optional
-- **Display-Modus**: Random, Newest, Chronological
-- **Layout**: Single oder Grid
-- **Anzeige-Intervall**: 3-60 Sekunden
-- **Grid-Spalten**: 2-6 Spalten
-- **Overlay-Einstellungen**: Username, Datum, Opacity
-- **Logo**: Event-spezifisches Logo
-- **Bildmoderation**: Aktivierung der Moderation für Uploads
-- **Galerie-Links**: Optional anzeigen bei Upload
-- **Display-Links**: Optional anzeigen bei Upload
-
-#### URL-Parameter für Display-Konfiguration
-
-Die Display-Seite unterstützt folgende URL-Parameter:
-
-- `show_logo=0|1` - Event-Logo anzeigen (0=nein, 1=ja)
-- `display_count=1|2|3|4|6|8|10|12` - Anzahl der gleichzeitig angezeigten Bilder
-- `display_mode=random|newest|chronological` - Anzeige-Modus
-- `display_interval=10` - Anzeige-Intervall in Sekunden
-
-**Beispiel-URL:**
-```
-http://localhost:4000/[event-slug]/display?show_logo=0&display_count=1&display_mode=random&display_interval=10
-```
-
-## Verwendung
-
-### Event erstellen
-
-1. Admin-Bereich aufrufen: http://localhost:4000/admin/
-2. "Neues Event erstellen" klicken
-3. Event-Details eingeben:
-   - Name und Beschreibung
-   - GPS-Koordinaten (Latitude/Longitude)
-   - Radius in Metern
-   - Display-Einstellungen
-4. Event aktivieren
-
-### Fotos hochladen
-
-1. Event-Seite aufrufen: http://localhost:4000/[event-slug]
-2. Username eingeben (optional)
-3. Foto per Drag & Drop oder Klick hochladen
-4. GPS-Validierung erfolgt automatisch
-5. Upload erfolgt automatisch nach Bildauswahl
-6. Duplikate werden automatisch erkannt und verhindert
-
-### Galerie anzeigen
-
-1. Galerie-Seite aufrufen: http://localhost:4000/[event-slug]/gallery
-2. Alle Event-Fotos werden als Thumbnails angezeigt
-3. Event-Logo wird oben angezeigt (falls konfiguriert)
-
-### Display-Modus
-
-1. Display-Seite aufrufen: http://localhost:4000/[event-slug]/display
-2. Fotos werden automatisch im konfigurierten Intervall angezeigt
-3. Vollbild-Modus für Präsentationen
-4. Smartphone-optimierte Anzeige
-
-## Makefile-Befehle
-
-### Produktionsumgebung
-```bash
-make help      # Hilfe anzeigen
-make up        # Projekt starten
-make down      # Projekt stoppen
-make restart   # Projekt neu starten
-make logs      # Logs anzeigen
-make clean     # Alles löschen (Container, Volumes)
-make setup     # Initiales Setup
-make status    # Container-Status anzeigen
-```
-
-### Entwicklungsumgebung (mit phpMyAdmin)
-```bash
-make dev-up     # Entwicklungsumgebung starten
-make dev-down   # Entwicklungsumgebung stoppen
-make dev-restart # Entwicklungsumgebung neu starten
-make dev-logs   # Logs der Entwicklungsumgebung anzeigen
-make dev-status # Status der Dev-Container anzeigen
-```
-
-## Projektstruktur
-
-```
-picturewall/
-├── admin/                    # Admin-Interface
-├── api/                      # API-Endpunkte
-├── assets/                   # CSS, JS, Bilder
-├── config/                   # Konfigurationsdateien
-├── data/                     # Upload-Verzeichnis
-├── includes/                 # PHP-Funktionen
-├── uploads/                  # Event-spezifische Uploads
-├── docker-compose.yml        # Docker-Konfiguration (Produktion)
-├── docker-compose.dev.yml    # Docker-Konfiguration (Entwicklung)
-├── Dockerfile                # Docker-Image-Definition
-├── Makefile                  # Automatisierte Befehle
-├── composer.json             # PHP-Abhängigkeiten
-├── CHANGELOG.md              # Versionshistorie
-└── README.md                 # Diese Datei
-```
-
-## API-Endpunkte
-
-- `GET /api/photos.php` - Fotos für Event abrufen (mit Thumbnails)
-- `POST /api/upload.php` - Foto hochladen (mit Duplikat-Erkennung)
-- `POST /api/toggle-photo-status.php` - Foto-Status ändern (Moderation)
-- `GET /api/event-config.php` - Event-Konfiguration abrufen
-- `GET /api/csrf-token.php` - CSRF-Token abrufen
-
-## Sicherheit
-
-- CSRF-Token-Schutz für alle POST-Requests
-- Sichere Session-Verwaltung
-- Datei-Typ-Validierung
-- GPS-Koordinaten-Validierung
-- SQL-Injection-Schutz durch Prepared Statements
-- Duplikat-Erkennung basierend auf Datei-Hash
-- Optional aktivierbare Bildmoderation
-
-## Entwicklung
-
-### Lokale Entwicklung
+### Für schnelles Ausprobieren (Development)
 
 ```bash
-# Entwicklungsumgebung mit phpMyAdmin starten
+# 1. Repository klonen
+git clone https://github.com/proudcommerce/pcphotowall.git
+cd pcphotowall
+
+# 2. Environment Setup
+make setup
+
+# 3. Development-Umgebung starten
 make dev-up
 
-# Logs verfolgen
-make dev-logs
+# Warten bis Container bereit sind (ca. 30 Sekunden)
+# Demo-Event wird automatisch erstellt
 
-# Änderungen testen
-# Code in /var/www/html wird automatisch gemountet
-
-# Datenbankverwaltung
-# phpMyAdmin: http://localhost:8081
-# Login mit DB_USER/DB_PASS aus .env
+# 4. Öffnen
+# App:         http://localhost:4000
+# Admin:       http://localhost:4000/admin/
+# phpMyAdmin:  http://localhost:8081
+# Demo-Event:  http://localhost:4000/demo-event
 ```
 
-### Datenbankverwaltung
+**Standard-Zugangsdaten:**
 
-Für die Entwicklung steht phpMyAdmin zur Verfügung:
-- **URL**: http://localhost:8081 (nur in Dev-Umgebung)
-- **Login**: Verwenden Sie die DB_USER/DB_PASS aus der .env-Datei
-- **Root-Zugang**: DB_PASS als Root-Passwort
+- Admin-Passwort: Siehe `.env` (ADMIN_PASSWORD)
+- phpMyAdmin: photowall / photowall
 
-### Debugging
+### Für Production
 
-- PHP-Fehler werden in `logs/php_errors.log` gespeichert
-- Docker-Logs: `make logs` (Produktion) oder `make dev-logs` (Entwicklung)
-- Browser-Entwicklertools für Frontend-Debugging
-- Datenbank-Debugging über phpMyAdmin (nur Dev)
-- Versionsnummer wird im Footer angezeigt
+```bash
 
-## Troubleshooting
+# 1. Repository klonen
+git clone https://github.com/proudcommerce/pcphotowall.git
+cd pcphotowall
 
-### Häufige Probleme
+# 2. Environment Setup
+make setup
 
-1. **Port bereits belegt**
-   ```bash
-   # Port in docker-compose.yml oder docker-compose.dev.yml ändern
-   ports:
-     - "4001:80"  # Statt 4000
-   ```
+# 3. .env für Production konfigurieren
+nano .env
+# Setze APP_ENV=production
+# Ändere alle Passwörter!
+# Setze APP_URL auf deine Domain
 
-2. **Datenbank-Verbindungsfehler**
-   ```bash
-   # Container neu starten
-   make restart        # Produktion
-   make dev-restart    # Entwicklung
-   ```
+# 3. Production starten
+make prod-up
 
-3. **phpMyAdmin nicht erreichbar**
-   ```bash
-   # Prüfen ob Dev-Umgebung läuft
-   make dev-status
-   
-   # Falls Port 8081 belegt, in docker-compose.dev.yml ändern
-   ports:
-     - "8082:80"  # Statt 8081
-   ```
+# 4. Logs überwachen
+make prod-logs
+```
 
-4. **Upload-Fehler**
-   - PHP-Upload-Limits in docker-compose.yml prüfen
-   - Dateiberechtigungen für `data/` Verzeichnis prüfen
-   - ImageMagick-Installation prüfen (für Thumbnails)
+---
 
-5. **GPS-Validierung funktioniert nicht**
-   - HTTPS erforderlich für GPS-Zugriff
-   - Browser-Berechtigungen prüfen
+## 📸 Screenshots
 
-6. **Thumbnails werden nicht erstellt**
-   - ImageMagick-Erweiterung prüfen: `docker exec -it [container] php -m | grep imagick`
-   - Berechtigungen für Upload-Verzeichnis prüfen
+### Display-Ansicht
 
-7. **Duplikat-Erkennung funktioniert nicht**
-   - Datenbank-Tabelle `photos` auf `file_hash` Spalte prüfen
-   - Hash-Berechnung in PHP prüfen
+<details>
+<summary>Live-Display mit Grid-Layout</summary>
 
-## Lizenz
+![Display Grid Layout](docs/screenshots/01-display.jpeg)
+*Live-Display mit 6 Fotos im Grid-Layout mit Overlays und QR-Code*
+</details>
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+### Admin-Bereich
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+<details>
+<summary>Admin-Übersicht</summary>
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+![Admin Dashboard](docs/screenshots/05-admin.jpeg)
+*Admin-Dashboard mit Event-Statistiken und Verwaltung*
+</details>
 
-(c) Proud Commerce GmbH 2025
+<details>
+<summary>Event bearbeiten</summary>
+
+![Event bearbeiten](docs/screenshots/02-edit-event.jpeg)
+*Event-Konfiguration mit allen Einstellungen*
+</details>
+
+<details>
+<summary>Foto-Verwaltung</summary>
+
+![Foto-Verwaltung](docs/screenshots/06-photo-management.jpeg)
+*Foto-Moderation mit Status-Anzeige und Rotation*
+</details>
+
+### Upload & Galerie
+
+<details>
+<summary>Upload-Seite</summary>
+
+![Upload-Seite](docs/screenshots/04-upload.jpeg)
+*Upload-Interface mit Drag & Drop und Event-Notiz*
+</details>
+
+<details>
+<summary>Galerie-Ansicht</summary>
+
+![Galerie](docs/screenshots/03-gallery.jpeg)
+*Responsive Grid-Layout der Foto-Galerie*
+</details>
+
+---
+
+## ✨ Featuredetails
+
+### 📱 Event-basierter Upload
+
+Jedes Event erhält einen eindeutigen Slug und optional einen QR-Code:
+
+- **URL-basiert**: `https://your-domain.com/[event-slug]`
+- **QR-Code**: Automatisch generiert für schnellen Zugang
+- **Multi-Upload**: Mehrere Fotos gleichzeitig hochladen
+- **Format-Support**: JPEG, PNG, GIF, WebP, HEIC/HEIF
+- **Duplikat-Erkennung**: SHA-256 Hash verhindert doppelte Uploads
+- **Auto-Rotation**: EXIF-basierte Bildausrichtung
+
+### 🌍 GPS-Validierung
+
+Optional kann ein Event GPS-Koordinaten und einen Radius definieren:
+
+- **Radius-Check**: Fotos müssen innerhalb des definierten Radius aufgenommen sein
+- **Flexible Konfiguration**: 10m bis 10km Radius einstellbar
+- **Fallback-Moderation**: Fotos ohne GPS-Daten gehen automatisch in Moderation
+- **Haversine-Formel**: Präzise Distanzberechnung
+
+### 🖼️ Live-Display
+
+Verschiedene Anzeigemodi für unterschiedliche Event-Typen:
+
+**Display-Modi:**
+
+- **Random** - Zufällige Anzeige aller Fotos
+- **Newest** - Neueste Fotos zuerst
+- **Chronological** - Zeitlich sortiert
+
+**Layout-Optionen:**
+
+- **Single** - Ein großes Foto im Vollbild
+- **Grid** - Mehrere Fotos gleichzeitig (1-10 Fotos)
+- **Anpassbare Spalten** - 2-4 Spalten im Grid-Layout
+
+**Overlay-Einstellungen:**
+
+- Benutzername anzeigen/verstecken
+- Datum anzeigen/verstecken
+- Transparenz konfigurierbar (0-100%)
+- Logo-Integration möglich
+
+**URL-Parameter** zur Laufzeit-Konfiguration:
+
+```
+/[event-slug]/display?display_count=9&display_mode=newest&display_interval=5&show_logo=1
+```
+
+### 🎨 Galerie-Ansicht
+
+Responsive Grid-Layout für alle hochgeladenen Fotos:
+
+- **Masonry-Layout** - Automatische Anordnung
+- **Thumbnail-Ansicht** - Schnelle Ladezeiten
+- **Lightbox** - Vollbild-Ansicht per Klick
+- **Mobile-optimiert** - Touch-Gesten Support
+- **Lazy Loading** - Nur sichtbare Bilder laden
+
+### ✅ Foto-Moderation
+
+Optionale manuelle Freigabe von Uploads:
+
+- **Pending-Status** - Neue Uploads sind zunächst inaktiv
+- **Admin-Interface** - Einfache Approve/Reject Buttons
+- **Batch-Operations** - Mehrere Fotos gleichzeitig bearbeiten
+- **Manuelle Rotation** - Fotos direkt im Admin-Panel drehen (90°, 180°, 270°)
+- **GPS-Fallback** - Fotos ohne GPS-Daten gehen automatisch in Moderation
+- **Vorschau** - Thumbnails für schnelle Entscheidungen
+
+### 🔒 Upload-Kontrolle
+
+Flexible Steuerung der Upload-Funktion pro Event:
+
+- **Upload aktivieren/deaktivieren** - Schalter im Admin-Panel
+- **Event beendet** - Uploads nachträglich deaktivieren
+- **Temporäre Sperre** - Upload-Funktion vorübergehend pausieren
+- **Benutzerfreundlich** - Klare Meldung bei deaktiviertem Upload
+- **Sofortige Wirkung** - Keine Cache-Verzögerung
+
+### 🔄 Automatische Bildverarbeitung
+
+Intelligente Verarbeitung aller Uploads:
+
+1. **Upload-Validierung** - Typ, Größe, Format prüfen
+2. **HEIC/HEIF Konvertierung** - Automatisch zu JPEG (ImageMagick)
+3. **Auto-Rotation** - EXIF-Orientierung korrigieren
+4. **Größenanpassung** - Auf maximale Breite/Höhe skalieren
+5. **Thumbnail-Generierung** - Optimierte Vorschaubilder (300x300px)
+6. **Hash-Berechnung** - SHA-256 für Duplikat-Erkennung
+7. **Database-Insert** - Metadata speichern
+
+### 🔐 Sicherheit
+
+Enterprise-Grade Sicherheitsfeatures:
+
+- **CSRF-Protection** - Token-basierte Formular-Validierung
+- **Session-Management** - Sichere Admin-Sessions
+- **Input-Sanitization** - XSS-Schutz durch htmlspecialchars
+- **File-Type-Validation** - MIME-Type-Prüfung
+- **SQL-Injection-Prevention** - PDO Prepared Statements
+- **Exception-Handling** - Custom Exception-Hierarchie
+
+---
+
+## ⚙️ Konfiguration
+
+### Environment Variables (.env)
+
+Alle 28 konfigurierbaren Parameter im Überblick:
+
+#### Database Configuration
+
+```bash
+DB_HOST=db                    # Docker: 'db', lokal: 'localhost'
+DB_NAME=photowall             # Datenbankname
+DB_USER=photowall             # DB-Benutzer
+DB_PASS=photowall             # DB-Passwort (ÄNDERN!)
+```
+
+#### App Configuration
+
+```bash
+APP_NAME=PC PhotoWall         # Anzeigename der App
+APP_URL=http://localhost:4000 # Basis-URL (mit https:// für Production)
+APP_ENV=development           # development|production
+```
+
+#### Upload Configuration
+
+```bash
+UPLOAD_ALLOWED_TYPES=image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif
+DEFAULT_MAX_UPLOAD_SIZE=10485760  # 10MB in bytes
+MAX_EXECUTION_TIME=300            # PHP max_execution_time (Sekunden)
+MEMORY_LIMIT=256M                 # PHP memory_limit
+```
+
+#### Image Processing
+
+```bash
+IMAGE_MAX_WIDTH=1920          # Maximale Bildbreite (px)
+IMAGE_MAX_HEIGHT=1080         # Maximale Bildhöhe (px)
+IMAGE_QUALITY_HIGH=90         # JPEG-Qualität (0-100)
+IMAGE_QUALITY_MEDIUM=85       # JPEG-Qualität Medium
+THUMBNAIL_MAX_WIDTH=300       # Thumbnail-Breite (px)
+THUMBNAIL_MAX_HEIGHT=300      # Thumbnail-Höhe (px)
+THUMBNAIL_QUALITY=85          # Thumbnail-JPEG-Qualität
+```
+
+#### Display Defaults
+
+```bash
+DEFAULT_DISPLAY_COUNT=9       # Anzahl Fotos im Grid (1-10)
+DEFAULT_DISPLAY_INTERVAL=5    # Sekunden zwischen Fotowechsel
+DEFAULT_DISPLAY_MODE=random   # random|newest|chronological
+DEFAULT_GRID_COLUMNS=3        # Spalten im Grid-Layout (2-4)
+```
+
+#### GPS Configuration
+
+```bash
+GPS_DEFAULT_RADIUS_METERS=100 # Standard-Radius für GPS-Check (m)
+DISTANCE_KM_THRESHOLD=1000    # Max. Distanz für Warnings (km)
+```
+
+#### QR Code Configuration
+
+```bash
+QR_CODE_DEFAULT_SIZE=200      # QR-Code-Größe (px)
+QR_CODE_MARGIN=10             # QR-Code-Rand (px)
+```
+
+#### Security Configuration
+
+```bash
+ADMIN_PASSWORD=ChangeThisSecurePassword123!  # ÄNDERN!
+SESSION_TIMEOUT=3600          # Session-Timeout (Sekunden)
+CSRF_TOKEN_NAME=csrf_token    # Name des CSRF-Tokens
+```
+
+#### Logging Configuration
+
+```bash
+LOG_ERRORS=1                  # Fehler loggen (0|1)
+DISPLAY_ERRORS=0              # Fehler anzeigen (nur Development: 1)
+```
+---
+
+## 📖 Verwendung
+
+### Für Event-Teilnehmer (Upload)
+
+1. **URL aufrufen oder QR-Code scannen**
+   - z.B. `https://your-domain.com/hochzeit-max-anna`
+   - QR-Code vom Veranstalter erhalten
+
+2. **Optional: Name eingeben**
+   - Wird bei Foto-Anzeige eingeblendet
+
+3. **Foto(s) auswählen**
+   - Einzeln oder mehrere gleichzeitig
+   - Direkt von Kamera oder aus Galerie
+
+4. **Hochladen**
+   - Progress-Bar zeigt Upload-Status
+   - GPS wird automatisch geprüft (falls aktiviert)
+
+5. **Bestätigung**
+   - Erfolgsmeldung bei Approval
+   - Hinweis bei Moderation-Queue
+
+### Für Event-Veranstalter (Admin)
+
+#### Event erstellen
+
+1. Admin-Login: `https://your-domain.com/admin/`
+2. "Neues Event erstellen"
+3. **Basis-Einstellungen:**
+   - Event-Name (z.B. "Hochzeit Max & Anna")
+   - Slug wird automatisch generiert (kann bearbeitet werden)
+
+4. **GPS-Validierung (optional):**
+   - Breite/Länge eingeben (z.B. von Google Maps)
+   - Radius in Metern (empfohlen: 100-500m)
+   - "GPS-Validierung aktivieren" anhaken
+
+5. **Display-Einstellungen:**
+   - Anzeigemodus (Random/Newest/Chronological)
+   - Anzahl Fotos (1-10)
+   - Wechselintervall (Sekunden)
+   - Grid-Spalten (2-4)
+
+6. **Upload-Einstellungen:**
+   - Maximale Upload-Größe (1-50MB)
+
+7. **Feature-Toggles:**
+   - Logo anzeigen
+   - QR-Code anzeigen
+   - Display-Link anzeigen
+   - Galerie-Link anzeigen
+   - Foto-Moderation aktivieren
+   - Upload aktivieren/deaktivieren
+
+8. **Speichern**
+   - Event ist sofort verfügbar
+   - QR-Code wird generiert
+
+#### Event bearbeiten
+
+1. Event-Liste aufrufen
+2. "Bearbeiten" bei gewünschtem Event
+3. Einstellungen anpassen
+4. Speichern
+
+#### Fotos moderieren (wenn aktiviert)
+
+1. Event-Liste → "Fotos verwalten"
+2. **Foto-Status:**
+   - 🔴 Rot = Pending (wartet auf Freigabe)
+   - 🟢 Grün = Aktiv (wird angezeigt)
+
+3. **Aktionen:**
+   - "Freigeben" - Foto aktivieren
+   - "Deaktivieren" - Foto verstecken
+   - "Drehen" - Manuelle Rotation (90°, 180°, 270°)
+
+4. **Batch-Operationen:**
+   - Mehrere Fotos gleichzeitig freigeben
+
+---
+
+## 📊 Display Modi
+
+### Random Mode (Zufällig)
+
+**Best für:** Lange Events, viele Fotos, abwechslungsreich
+
+```
+Konfiguration:
+- display_mode: random
+- display_count: 9 (empfohlen)
+- display_interval: 5-10 Sekunden
+```
+
+**Verhalten:**
+
+- Zufällige Auswahl aus allen aktiven Fotos
+- Keine Dopplungen innerhalb kurzer Zeit
+- Kontinuierliche Aktualisierung
+
+### Newest Mode (Neueste zuerst)
+
+**Best für:** Live-Events, aktives Feedback, Social-Media-Feeling
+
+```
+Konfiguration:
+- display_mode: newest
+- display_count: 1-4 (empfohlen)
+- display_interval: 3-5 Sekunden
+```
+
+**Verhalten:**
+
+- Neueste Uploads erscheinen sofort
+- Ältere Fotos werden verdrängt
+- Dynamische Aktualisierung
+
+### Chronological Mode (Zeitlich sortiert)
+
+**Best für:** Story-Telling, Event-Nachbereitung, Chronologie zeigen
+
+```
+Konfiguration:
+- display_mode: chronological
+- display_count: 1 (empfohlen)
+- display_interval: 5-10 Sekunden
+```
+
+**Verhalten:**
+
+- Fotos in Upload-Reihenfolge
+- Zeigt Event-Verlauf
+- Von alt nach neu
+
+### URL-Parameter Override
+
+Display-Einstellungen zur Laufzeit überschreiben:
+
+```bash
+# Vollständiges Beispiel
+/hochzeit-max-anna/display?display_count=6&display_mode=newest&display_interval=3&show_logo=1
+
+# Einzelne Parameter
+?display_count=4          # Anzahl Fotos
+?display_mode=newest      # Modus
+?display_interval=10      # Intervall
+?show_logo=1              # Logo anzeigen (0|1)
+```
+
+---
+
+## 💾 Backup & Restore
+
+### Backup erstellen
+
+**Einzelnes Event sichern:**
+
+```bash
+# Via Event-Slug
+make backup hochzeit-max-anna
+
+# Oder mit EVENT-Variable
+make backup EVENT=hochzeit-max-anna
+```
+
+**Alle Events sichern:**
+
+```bash
+make backup-all
+```
+
+**Backup-Inhalt:**
+
+- Event-Fotos (Originale + Thumbnails)
+- Event-Logo (falls vorhanden)
+- Datenbank-Dump (Event + Fotos)
+- Metadata (Timestamp, Slug, Hash)
+
+**Backup-Format:**
+
+```
+backups/picturewall_backup_[event-slug]_[YYYYMMDD_HHMMSS].tar.gz
+```
+
+**Hinweis:** Backup-Dateien verwenden das Präfix `picturewall_backup_` aus historischen Gründen.
+
+### Backups auflisten
+
+```bash
+make list-backups
+
+# Output:
+# Verfügbare Backups:
+#   backups/picturewall_backup_demo-event_20250115_143022.tar.gz (2.5M) - Jan 15 14:30
+#   backups/picturewall_backup_hochzeit_20250114_120000.tar.gz (125M) - Jan 14 12:00
+```
+
+### Backup wiederherstellen
+
+**Vollständiges Restore (Datenbank + Fotos):**
+
+```bash
+# Via Pfad-Argument
+make restore backups/picturewall_backup_demo-event_20250115_143022.tar.gz
+
+# Oder mit FILE-Variable
+make restore FILE=backups/picturewall_backup_demo-event_20250115_143022.tar.gz
+```
+
+**Nur Datenbank wiederherstellen (ohne Fotos):**
+
+```bash
+# Via Pfad-Argument
+make restore-db backups/picturewall_backup_demo-event_20250115_143022.tar.gz
+
+# Oder mit FILE-Variable
+make restore-db FILE=backups/picturewall_backup_demo-event_20250115_143022.tar.gz
+```
+
+---
+
+## 🛠️ Make-Befehle
+
+Alle verfügbaren Befehle zur Verwaltung der Anwendung:
+
+### Setup & Build
+
+```bash
+make clean              # Vollständiger Reset: Dev + Prod Container, Netzwerke, Volumes + Upload-Daten löschen
+make setup              # Initiales Setup (.env.example nach .env kopieren)
+```
+
+### Development (mit phpMyAdmin)
+
+```bash
+make dev-up             # Entwicklungsumgebung mit phpMyAdmin starten
+make dev-down           # Entwicklungsumgebung stoppen
+make dev-restart        # Entwicklungsumgebung neustarten
+make dev-logs           # Logs der Entwicklungs-Services anzeigen
+make dev-status         # Status der Entwicklungs-Container anzeigen
+```
+
+### Production
+
+```bash
+make prod-up            # Produktionsumgebung starten
+make prod-down          # Produktionsumgebung stoppen
+make prod-restart       # Produktionsumgebung neustarten
+make prod-logs          # Logs aller Produktions-Services anzeigen
+make prod-status        # Status der Produktions-Container anzeigen
+```
+
+### Testing
+
+```bash
+make test               # Alle Tests ausführen
+make test-quick         # Schnelltests (ohne Integration/Real Images)
+make test-syntax        # PHP-Syntax-Prüfung
+```
+
+### Backup & Restore
+
+```bash
+make backup [slug]      # Spezifisches Event sichern (Bilder + Datenbank)
+make backup-all         # Alle Events und komplette Datenbank sichern
+make restore [pfad]     # Aus Backup-Datei wiederherstellen (Bilder + DB)
+make restore-db [pfad]  # Nur Datenbank aus Backup wiederherstellen
+make list-backups       # Alle verfügbaren Backups auflisten
+```
+
+**Tipp:** `make help` oder einfach `make` zeigt diese Übersicht auch im Terminal an.
+
+---
+
+## 🔧 Troubleshooting
+
+### Container starten nicht
+
+**Problem:** `make dev-up` schlägt fehl
+
+**Lösung:**
+
+```bash
+# Ports prüfen
+netstat -tulpn | grep -E '4000|3306|8081'
+
+# Falls Ports belegt: In docker-compose.dev.yml anpassen
+# Oder andere Services stoppen
+
+# Docker-Status prüfen
+systemctl status docker
+
+# Logs anschauen
+docker-compose -f docker-compose.dev.yml logs
+```
+
+### Uploads schlagen fehl
+
+**Problem:** "Upload failed" Fehler
+
+**Mögliche Ursachen:**
+
+1. **File-Permissions:**
+
+```bash
+# Verzeichnisse prüfen
+ls -la app/uploads/
+
+# Permissions fixen
+chmod -R 755 app/uploads/
+chmod -R 755 app/data/
+```
+
+2. **PHP Upload-Limits:**
+
+```bash
+# In .env erhöhen
+DEFAULT_MAX_UPLOAD_SIZE=52428800  # 50MB
+MEMORY_LIMIT=512M
+MAX_EXECUTION_TIME=600
+```
+
+3. **Disk-Space:**
+
+```bash
+df -h
+# Alte Backups löschen wenn nötig
+```
+
+### GPS-Validierung funktioniert nicht
+
+**Problem:** Fotos werden trotz korrekter GPS-Daten abgelehnt
+
+**Debug:**
+
+```bash
+# Logs prüfen
+tail -f app/logs/php_errors.log
+
+# GPS-Koordinaten im Browser-Console prüfen
+# Bei Upload sollte console.log die Koordinaten zeigen
+
+# Radius erhöhen (in Admin → Event bearbeiten)
+# Testweise: 1000m oder GPS-Validierung deaktivieren
+```
+
+### Display zeigt keine Fotos
+
+**Problem:** Display-Seite bleibt leer
+
+**Checkliste:**
+
+1. **Fotos vorhanden?**
+
+```bash
+# Prüfen ob Fotos in Event-Verzeichnis
+ls -la app/uploads/[event-slug]/photos/
+```
+
+2. **Fotos aktiv?**
+
+```sql
+-- In phpMyAdmin oder mysql
+SELECT id, filename, is_active FROM photos WHERE event_id = X;
+-- is_active muss 1 sein
+```
+
+3. **Browser-Console prüfen:**
+
+```javascript
+// F12 → Console
+// Fehler bei API-Aufruf?
+```
+
+4. **Cache leeren:**
+
+```bash
+# Browser: Strg+Shift+R
+# Oder im Inkognito-Modus testen
+```
+
+### phpMyAdmin nicht erreichbar
+
+**Problem:** <http://localhost:8081> lädt nicht
+
+**Lösung:**
+
+```bash
+# Nur in Development verfügbar!
+# Production-Compose hat kein phpMyAdmin
+
+# Container-Status prüfen
+docker ps | grep phpmyadmin
+
+# Falls nicht gestartet:
+make dev-down
+make dev-up
+
+# Port belegt?
+netstat -tulpn | grep 8081
+```
+
+### Thumbnails fehlen
+
+**Problem:** Galerie zeigt keine Vorschaubilder
+
+**Lösung:**
+
+```bash
+# GD-Extension prüfen
+docker exec pcphotowall_web php -m | grep -i gd
+
+# ImageMagick prüfen
+docker exec pcphotowall_web convert --version
+
+# Thumbnails manuell regenerieren (TODO: Script erstellen)
+# Workaround: Fotos neu hochladen
+```
+
+### Database-Connection failed
+
+**Problem:** "Database connection failed"
+
+**Lösung:**
+
+```bash
+# Container laufen?
+docker ps
+
+# DB-Logs prüfen
+docker logs pcphotowall_db
+
+# Connection testen
+docker exec pcphotowall_db mysql -uphotowall -pphotowall -e "SHOW DATABASES;"
+
+# .env prüfen
+cat .env | grep DB_
+
+# Container neustarten
+make dev-restart
+```
+---
+
+## 📄 Lizenz
+
+Dieses Projekt ist lizenziert unter der **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+### Was bedeutet das?
+
+- ✅ **Freie Nutzung** - Sie können die Software frei verwenden, modifizieren und verteilen
+- ✅ **Open Source** - Der Quellcode bleibt immer verfügbar
+- ✅ **SaaS-geschützt** - Auch bei Web-Service-Betrieb muss der Code offengelegt werden
+- ⚠️ **Copyleft** - Änderungen müssen unter derselben Lizenz veröffentlicht werden
+- ⚠️ **Netzwerk-Nutzung** - Bei SaaS-Betrieb muss ein Link zum Quellcode bereitgestellt werden
+
+Für **Closed-Source** oder **proprietäre** Nutzung ist eine separate kommerzielle Lizenz erforderlich.
+
+Siehe [LICENSE](LICENSE) für den vollständigen Lizenztext.
+
+---
+
+Mit ❤️ entwickelt für das [DevOps Camp](https://devops-camp.de).
+
+© [Proud Commerce](https://www.proudcommerce.com) | 2025

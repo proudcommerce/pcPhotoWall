@@ -1,20 +1,20 @@
 # Composer
-/vendor/
-composer.lock
+/app/vendor/
+/app/composer.lock
 
 # Environment
 .env
+app/.env
 .env.local
 .env.production
 
 # Upload directories
-/uploads/
-/data/
-uploads/photos/
+/app/uploads/
+/app/data/
+/app/logs/
 
 # Logs
 *.log
-logs/
 
 # Cache
 .cache/
@@ -26,6 +26,9 @@ cache/
 *.swp
 *.swo
 *~
+
+# Claude Code
+.claude/settings.local.json
 
 # OS
 .DS_Store
@@ -45,6 +48,8 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup
+/backups/
+/temp_restore/
 
 # Node modules (falls vorhanden)
 node_modules/

@@ -1,0 +1,692 @@
+/* Display Mode Styles */
+body.display-mode {
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+body.display-mode * {
+    box-sizing: border-box;
+}
+
+.display-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+    margin: 0;
+    padding: 0;
+}
+
+/* Display QR Code */
+.display-qr-code {
+    position: fixed;
+    bottom: 3rem;
+    right: 1rem;
+    z-index: 2000;
+    text-align: center;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.qr-code-image {
+    width: 120px;
+    height: 120px;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin: 0 auto;
+}
+
+.qr-code-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Force QR code visibility in all states */
+.display-qr-code,
+.display-qr-code * {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Ensure QR code is always on top of everything */
+.display-qr-code {
+    position: fixed !important;
+    z-index: 9999 !important;
+}
+
+/* Display Logo */
+.display-logo {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    text-align: center;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: none;
+}
+
+.display-logo img {
+    max-height: 80px;
+    max-width: 300px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.8)) drop-shadow(0 0 10px rgba(255,255,255,0.6)) drop-shadow(0 0 15px rgba(255,255,255,0.4));
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Force logo visibility in all states */
+.display-logo,
+.display-logo * {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Ensure logo is always on top of everything */
+.display-logo {
+    position: fixed !important;
+    z-index: 9999 !important;
+}
+
+/* Display Header */
+.display-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.display-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.display-info {
+    display: flex;
+    gap: 2rem;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.display-info span {
+    background: rgba(255,255,255,0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+/* Photo Container */
+.photo-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    color: white;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* No Photos State */
+.no-photos {
+    text-align: center;
+    color: white;
+    padding: 2rem;
+}
+
+.no-photos-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.no-photos h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #ccc;
+}
+
+.no-photos p {
+    font-size: 1.2rem;
+    opacity: 0.7;
+}
+
+/* Photos Grid */
+.photos-grid {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    gap: 0;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Grid Layout */
+.photos-grid.grid {
+    grid-template-columns: repeat(var(--grid-columns), 1fr);
+    grid-template-rows: repeat(auto-fit, 1fr);
+}
+
+/* Single Layout */
+.photos-grid.single {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* Fullscreen Single Photo */
+.photos-grid.single.fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #000 !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+}
+
+.photos-grid.single.fullscreen .photo-item {
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+}
+
+.photos-grid.single.fullscreen .photo-item img {
+    width: 100vw !important;
+    height: 100vh !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+}
+
+/* Single photo item styling */
+.photos-grid.single .photo-item {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.photos-grid.single .photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Photo Items */
+.photo-item {
+    position: relative;
+    overflow: hidden;
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s ease;
+    opacity: 1;
+    transform: scale(1);
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px solid #000;
+}
+
+/* Layout-specific styles */
+.photos-grid.two-photos .photo-item {
+    height: 100vh; /* Full height for 2 photos */
+}
+
+.photos-grid.three-photos .photo-item {
+    height: 100vh; /* Full height for 3 photos */
+}
+
+.photos-grid.four-photos .photo-item {
+    aspect-ratio: 1;
+}
+
+.photos-grid.six-photos .photo-item {
+    aspect-ratio: 1;
+}
+
+.photos-grid.eight-photos .photo-item {
+    aspect-ratio: 1;
+}
+
+.photos-grid.ten-photos .photo-item {
+    aspect-ratio: 1;
+}
+
+/* Specific grid layouts for different photo counts */
+.photos-grid.four-photos {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.photos-grid.six-photos {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.photos-grid.eight-photos {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.photos-grid.ten-photos {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.photo-item.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.3s ease;
+    display: block;
+}
+
+.photo-item:hover img {
+    transform: scale(1.05);
+}
+
+/* Photo Overlay */
+.photo-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%);
+    padding: 1rem;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.photo-item:hover .photo-overlay {
+    opacity: 1;
+}
+
+.photo-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.photo-username {
+    font-weight: 600;
+}
+
+.photo-time {
+    opacity: 0.8;
+}
+
+/* Display Controls */
+.display-controls {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(0,0,0,0.8);
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.control-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+.control-btn:active {
+    transform: scale(0.95);
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 200px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 0 1rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+/* Display Settings */
+.display-settings {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.95);
+    padding: 2rem;
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 1000;
+    min-width: 400px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.display-settings h3 {
+    margin-bottom: 2rem;
+    color: white;
+    text-align: center;
+    font-size: 1.5rem;
+}
+
+.setting-group {
+    margin-bottom: 1.5rem;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #ccc;
+    font-weight: 600;
+}
+
+.setting-group select,
+.setting-group input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+}
+
+.setting-group select:focus,
+.setting-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.setting-group select option {
+    background: #333;
+    color: white;
+}
+
+.display-settings .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+/* Settings Toggle */
+.settings-toggle {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: rgba(0,0,0,0.8);
+    border: none;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 200;
+    backdrop-filter: blur(10px);
+}
+
+.settings-toggle:hover {
+    background: rgba(0,0,0,0.9);
+    transform: scale(1.1);
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .display-header {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .display-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .display-info {
+        gap: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .display-controls {
+        bottom: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .progress-bar {
+        width: 150px;
+    }
+    
+    .display-settings {
+        min-width: 300px;
+        padding: 1.5rem;
+    }
+    
+    .settings-toggle {
+        top: 1rem;
+        right: 1rem;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    /* Mobile QR Code adjustments */
+    .display-qr-code {
+        bottom: 1rem;
+        right: 1rem;
+        padding: 0.6rem;
+    }
+    
+    .qr-code-image {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .qr-code-label {
+        font-size: 0.8rem;
+    }
+    
+    /* Mobile Layout: Force 2 photos vertically stacked */
+    .photos-grid.two-photos-mobile,
+    .photos-grid.four-photos-mobile,
+    .photos-grid.six-photos-mobile,
+    .photos-grid.eight-photos-mobile,
+    .photos-grid.ten-photos-mobile {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 1fr 1fr !important;
+    }
+    
+    /* Ensure mobile photos take full height */
+    .photos-grid.two-photos-mobile .photo-item,
+    .photos-grid.four-photos-mobile .photo-item,
+    .photos-grid.six-photos-mobile .photo-item,
+    .photos-grid.eight-photos-mobile .photo-item,
+    .photos-grid.ten-photos-mobile .photo-item {
+        height: 50vh !important;
+        aspect-ratio: unset !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .display-header h1 {
+        font-size: 1.2rem;
+    }
+    
+    .display-info {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .display-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+    
+    .progress-bar {
+        width: 100px;
+        margin: 0;
+    }
+    
+    .display-settings {
+        min-width: 280px;
+        padding: 1rem;
+    }
+    
+    /* Small mobile QR Code adjustments */
+    .display-qr-code {
+        bottom: 0.5rem;
+        right: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .qr-code-image {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .qr-code-label {
+        font-size: 0.7rem;
+    }
+}
+
+
+/* Auto-hide controls */
+.display-controls.auto-hide {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.display-container:hover .display-controls.auto-hide {
+    opacity: 1;
+}

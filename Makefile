@@ -1,93 +1,212 @@
-# Picturewall Project Makefile
+# PC PhotoWall Projekt Makefile
 
-.PHONY: help up down restart logs clean setup status dev-up dev-down dev-restart dev-logs dev-status
+.PHONY: help clean setup prod-up prod-down prod-restart prod-logs prod-status dev-up dev-down dev-restart dev-logs dev-status test test-quick test-syntax backup backup-all restore restore-db list-backups
 
-# Default target
+# Standard-Ziel
 help:
-	@echo "Picturewall Project Commands:"
-	@echo "  make up       - Start the project (docker-compose up -d)"
-	@echo "  make down     - Stop the project (docker-compose down)"
-	@echo "  make restart  - Restart the project"
-	@echo "  make logs     - Show logs from all services"
-	@echo "  make clean    - Stop and remove containers, networks, and volumes"
-	@echo "  make setup    - Initial setup (copy .env.example to .env)"
-	@echo "  make status   - Show status of containers"
+	@echo "╔══════════════════════════════════════════════════╗"
+	@echo "║           PC PhotoWall - Make Commands           ║"
+	@echo "╚══════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "Development Commands (with phpMyAdmin):"
-	@echo "  make dev-up     - Start development environment with phpMyAdmin"
-	@echo "  make dev-down   - Stop development environment"
-	@echo "  make dev-restart - Restart development environment"
-	@echo "  make dev-logs   - Show logs from development services"
-	@echo "  make dev-status - Show status of development containers"
+	@echo "Setup & Build:"
+	@echo "  make clean              - Vollständiger Reset: Dev + Prod Container, Netzwerke, Volumes + Upload-Daten löschen"
+	@echo "  make setup              - Initiales Setup (.env.example nach .env kopieren)"
 	@echo ""
-	@echo "  make help     - Show this help message"
+	@echo "Development (mit phpMyAdmin):"
+	@echo "  make dev-up             - Entwicklungsumgebung mit phpMyAdmin starten"
+	@echo "  make dev-down           - Entwicklungsumgebung stoppen"
+	@echo "  make dev-restart        - Entwicklungsumgebung neustarten"
+	@echo "  make dev-logs           - Logs der Entwicklungs-Services anzeigen"
+	@echo "  make dev-status         - Status der Entwicklungs-Container anzeigen"
+	@echo ""
+	@echo "Production:"
+	@echo "  make prod-up            - Produktionsumgebung starten"
+	@echo "  make prod-down          - Produktionsumgebung stoppen"
+	@echo "  make prod-restart       - Produktionsumgebung neustarten"
+	@echo "  make prod-logs          - Logs aller Produktions-Services anzeigen"
+	@echo "  make prod-status        - Status der Produktions-Container anzeigen"
+	@echo ""
+	@echo "Testing (benötigt laufende Dev-Umgebung):"
+	@echo "  make test                    - Alle Tests ausführen (benötigt: make dev-up)"
+	@echo "  make test-quick              - Schnelltests (benötigt: make dev-up)"
+	@echo "  make test-syntax             - PHP-Syntax-Prüfung (keine Dev-Umgebung nötig)"
+	@echo ""
+	@echo "Backup & Restore:"
+	@echo "  make backup [slug]           - Spezifisches Event sichern (Bilder + Datenbank)"
+	@echo "  make backup-all              - Alle Events und komplette Datenbank sichern"
+	@echo "  make restore [pfad]          - Aus Backup-Datei wiederherstellen (Bilder + DB)"
+	@echo "  make restore-db [pfad]       - Nur Datenbank aus Backup wiederherstellen"
+	@echo "  make list-backups            - Alle verfügbaren Backups auflisten"
 
-# Start the project
-up:
-	@echo "Starting Picturewall project..."
+# Produktions-Befehle
+
+# Produktionsumgebung starten
+prod-up:
+	@echo "Starte PC PhotoWall Produktionsumgebung..."
 	docker-compose up -d
-	@echo "Project started! Access at http://localhost:4000"
+	@echo "Produktionsumgebung gestartet! Erreichbar unter http://localhost:4000"
 
-# Stop the project
-down:
-	@echo "Stopping Picturewall project..."
+# Produktionsumgebung stoppen
+prod-down:
+	@echo "Stoppe PC PhotoWall Produktionsumgebung..."
 	docker-compose down
-	@echo "Project stopped."
+	@echo "Produktionsumgebung gestoppt."
 
-# Restart the project
-restart: down up
+# Produktionsumgebung neustarten
+prod-restart: prod-down prod-up
 
-# Show logs
-logs:
+# Logs anzeigen
+prod-logs:
 	docker-compose logs -f
 
-# Clean everything (containers, networks, volumes)
+# Vollständiger Reset: Dev + Prod + Daten löschen
 clean:
-	@echo "Cleaning up Picturewall project..."
-	docker-compose down -v --remove-orphans
-	docker system prune -f
-	@echo "Cleanup completed."
+	@if [ "$(FORCE)" != "yes" ]; then \
+		echo "⚠️  WARNUNG: Vollständiger Reset (Dev + Prod)!"; \
+		echo "   Dies wird:"; \
+		echo "   - Alle Dev- und Prod-Container stoppen und Volumes entfernen"; \
+		echo "   - ALLE hochgeladenen Fotos und Daten löschen"; \
+		echo "   - Docker-System bereinigen"; \
+		echo ""; \
+		echo "   Ergebnis: Neuinstallation mit Demo-Event beim nächsten Start"; \
+		echo ""; \
+		read -p "Sind Sie sicher? Geben Sie 'yes' ein zum Fortfahren: " confirm; \
+		if [ "$$confirm" != "yes" ]; then \
+			echo "Abgebrochen."; \
+			exit 1; \
+		fi; \
+		echo ""; \
+	fi
+	@echo "1/4 Stoppe und entferne Produktionsumgebung..."
+	@docker-compose down -v --remove-orphans 2>/dev/null || true
+	@echo "2/4 Stoppe und entferne Entwicklungsumgebung..."
+	@docker-compose -f docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
+	@echo "3/4 Entferne hochgeladene Daten und Logs..."
+	@rm -rf app/data/*/ 2>/dev/null || true
+	@rm -rf app/uploads/*/ 2>/dev/null || true
+	@rm -rf app/logs/*.log 2>/dev/null || true
+	@echo "4/4 Bereinige Docker-System..."
+	@docker system prune -f > /dev/null 2>&1
+	@echo ""
+	@echo "✓ Vollständiger Reset abgeschlossen!"
+	@echo "  Führen Sie 'make dev-up' oder 'make up' aus, um neu zu starten."
 
-# Initial setup
+# Initiales Setup
 setup:
 	@if [ ! -f .env ]; then \
-		echo "Creating .env file from .env.example..."; \
+		echo "Erstelle .env-Datei aus .env.example..."; \
 		cp .env.example .env; \
-		echo ".env file created. Please review and adjust settings if needed."; \
+		echo ".env-Datei erstellt. Bitte Einstellungen prüfen und bei Bedarf anpassen."; \
 	else \
-		echo ".env file already exists."; \
+		echo ".env-Datei existiert bereits."; \
 	fi
-	@echo "Setup completed."
+	@echo "Setup abgeschlossen."
 
-# Show container status
-status:
-	@echo "Container status:"
+# Container-Status anzeigen
+prod-status:
+	@echo "Container-Status:"
 	docker-compose ps
 
-# Development environment commands (with phpMyAdmin)
+# Entwicklungs-Befehle (mit phpMyAdmin)
 
-# Start development environment
+# Entwicklungsumgebung starten
 dev-up:
-	@echo "Starting Picturewall development environment with phpMyAdmin..."
+	@echo "Starte PC PhotoWall Entwicklungsumgebung mit phpMyAdmin..."
 	docker-compose -f docker-compose.dev.yml up -d
-	@echo "Development environment started!"
-	@echo "Web application: http://localhost:4000"
+	@echo "Entwicklungsumgebung gestartet!"
+	@echo "Webanwendung: http://localhost:4000"
 	@echo "phpMyAdmin: http://localhost:8081"
 
-# Stop development environment
+# Entwicklungsumgebung stoppen
 dev-down:
-	@echo "Stopping Picturewall development environment..."
+	@echo "Stoppe PC PhotoWall Entwicklungsumgebung..."
 	docker-compose -f docker-compose.dev.yml down
-	@echo "Development environment stopped."
+	@echo "Entwicklungsumgebung gestoppt."
 
-# Restart development environment
+# Entwicklungsumgebung neustarten
 dev-restart: dev-down dev-up
 
-# Show development logs
+# Entwicklungs-Logs anzeigen
 dev-logs:
 	docker-compose -f docker-compose.dev.yml logs -f
 
-# Show development container status
+# Entwicklungs-Container-Status anzeigen
 dev-status:
-	@echo "Development container status:"
-	docker-compose -f docker-compose.dev.yml ps
+	@echo "Entwicklungs-Container-Status:"
+	@docker-compose -f docker-compose.dev.yml ps
+
+# Test-Befehle
+
+# Alle Tests ausführen
+test:
+	@echo "Führe alle PC PhotoWall-Tests aus..."
+	./tests/run-tests.sh test
+
+# Schnelltests ausführen (ohne Integration/Real Images)
+test-quick:
+	@echo "Führe Schnelltests aus..."
+	./tests/run-tests.sh quick
+
+# PHP-Syntax-Prüfung ausführen
+test-syntax:
+	@echo "Führe PHP-Syntax-Prüfung aus..."
+	./tests/run-tests.sh syntax
+
+# Backup & Wiederherstellungs-Befehle
+
+# Spezifisches Event sichern
+backup:
+	@EVENT_SLUG="$(filter-out $@,$(MAKECMDGOALS))"; \
+	if [ -z "$$EVENT_SLUG" ] && [ -z "$(EVENT)" ]; then \
+		echo "Fehler: Event-Slug erforderlich"; \
+		echo "Verwendung: make backup [event-slug]"; \
+		echo "       oder: make backup EVENT=event-slug"; \
+		exit 1; \
+	fi; \
+	EVENT_SLUG="$${EVENT_SLUG:-$(EVENT)}"; \
+	echo "Erstelle Backup für Event: $$EVENT_SLUG"; \
+	./scripts/backup-event.sh "$$EVENT_SLUG"
+
+# Alle Events sichern
+backup-all:
+	@echo "Erstelle vollständiges Backup aller Events..."
+	./scripts/backup-event.sh --all
+
+# Aus Backup wiederherstellen (vollständig: Bilder + DB)
+restore:
+	@BACKUP_FILE="$(filter-out $@,$(MAKECMDGOALS))"; \
+	if [ -z "$$BACKUP_FILE" ] && [ -z "$(FILE)" ]; then \
+		echo "Fehler: Backup-Dateipfad erforderlich"; \
+		echo "Verwendung: make restore [pfad/zur/backup.tar.gz]"; \
+		echo "       oder: make restore FILE=pfad/zur/backup.tar.gz"; \
+		exit 1; \
+	fi; \
+	BACKUP_FILE="$${BACKUP_FILE:-$(FILE)}"; \
+	echo "Stelle aus Backup wieder her: $$BACKUP_FILE"; \
+	./scripts/restore-event.sh "$$BACKUP_FILE"
+
+# Nur Datenbank aus Backup wiederherstellen
+restore-db:
+	@BACKUP_FILE="$(filter-out $@,$(MAKECMDGOALS))"; \
+	if [ -z "$$BACKUP_FILE" ] && [ -z "$(FILE)" ]; then \
+		echo "Fehler: Backup-Dateipfad erforderlich"; \
+		echo "Verwendung: make restore-db [pfad/zur/backup.tar.gz]"; \
+		echo "       oder: make restore-db FILE=pfad/zur/backup.tar.gz"; \
+		exit 1; \
+	fi; \
+	BACKUP_FILE="$${BACKUP_FILE:-$(FILE)}"; \
+	echo "Stelle nur Datenbank wieder her: $$BACKUP_FILE"; \
+	./scripts/restore-db-only.sh "$$BACKUP_FILE"
+
+# Alle Backups auflisten
+list-backups:
+	@echo "Verfügbare Backups:"
+	@if [ -d backups ] && [ -n "$$(ls -A backups 2>/dev/null)" ]; then \
+		ls -lh backups/*.tar.gz 2>/dev/null | awk '{print "  " $$9 " (" $$5 ") - " $$6 " " $$7 " " $$8}' || echo "  Keine Backups gefunden"; \
+	else \
+		echo "  Kein Backup-Verzeichnis oder keine Backups gefunden"; \
+	fi
+
+# Catch-all-Regel, um "No rule to make target"-Fehler für positionelle Argumente zu vermeiden
+%:
+	@:

@@ -1,0 +1,85 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Documentation
+README.md
+CHANGELOG.md
+CLAUDE.md
+VERBESSERUNGSVORSCHLAEGE.md
+*.md
+
+# Development files
+Makefile
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+.cursorignore
+
+# Docker runtime data
+docker/mysql-data/
+
+# Environment files (will be mounted separately)
+.env
+.env.*
+!.env.example
+
+# Node modules (if any)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Composer (vendor will be built inside container)
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+.DS_Store
+Thumbs.db
+
+# Logs (will be mounted as volumes)
+logs/
+*.log
+app/logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
+
+# Uploads and data (will be mounted as volumes)
+app/uploads/
+app/data/
+uploads/
+data/
+
+# Test files (not needed in production)
+tests/
+phpunit.xml
+.phpunit.result.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Security
+cookies.txt
+*.pem
+*.key
