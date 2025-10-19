@@ -28,7 +28,8 @@ cache/
 *~
 
 # Claude Code
-.claude/settings.local.json
+.claude/
+CLAUDE.md
 
 # OS
 .DS_Store
