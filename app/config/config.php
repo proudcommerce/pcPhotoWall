@@ -73,12 +73,12 @@ define('SESSION_TIMEOUT', (int)($_ENV['SESSION_TIMEOUT'] ?? 3600)); // 1 hour
 define('ADMIN_PASSWORD', $_ENV['ADMIN_PASSWORD'] ?? 'ChangeThisSecurePassword123!');
 
 // Error Reporting - Production safe
-$appEnv = $_ENV['APP_ENV'] ?? 'development';
-$displayErrors = $_ENV['DISPLAY_ERRORS'] ?? ($appEnv === 'production' ? '0' : '1');
+$isProduction = ($_ENV['APP_ENV'] ?? 'development') === 'production';
+$displayErrors = $_ENV['DISPLAY_ERRORS'] ?? ($isProduction ? '0' : '1');
 $logErrors = $_ENV['LOG_ERRORS'] ?? '1';
 
-if ($appEnv === 'production') {
-    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+if ($isProduction) {
+    error_reporting(E_ALL & ~E_DEPRECATED);
     ini_set('display_errors', $displayErrors);
     ini_set('log_errors', $logErrors);
     ini_set('error_log', ROOT_PATH . '/logs/php_errors.log');
@@ -96,7 +96,7 @@ ini_set('memory_limit', $_ENV['MEMORY_LIMIT'] ?? '256M');
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
-    ini_set('session.cookie_secure', $appEnv === 'production' ? 1 : 0);
+    ini_set('session.cookie_secure', $isProduction ? 1 : 0);
     ini_set('session.cookie_samesite', 'Strict');
     ini_set('session.gc_maxlifetime', SESSION_TIMEOUT);
     session_start();

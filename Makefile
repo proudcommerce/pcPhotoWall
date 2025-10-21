@@ -1,5 +1,11 @@
 # PC PhotoWall Projekt Makefile
 
+# Docker Compose Befehl automatisch erkennen (docker-compose vs docker compose)
+DOCKER_COMPOSE := $(shell which docker-compose 2>/dev/null)
+ifeq ($(DOCKER_COMPOSE),)
+	DOCKER_COMPOSE := docker compose
+endif
+
 .PHONY: help clean setup prod-up prod-down prod-restart prod-logs prod-status dev-up dev-down dev-restart dev-logs dev-status test test-quick test-syntax backup backup-all restore restore-db list-backups
 
 # Standard-Ziel
@@ -43,13 +49,13 @@ help:
 # Produktionsumgebung starten
 prod-up:
 	@echo "Starte PC PhotoWall Produktionsumgebung..."
-	docker-compose up -d
+	$(DOCKER_COMPOSE) up -d
 	@echo "Produktionsumgebung gestartet! Erreichbar unter http://localhost:4000"
 
 # Produktionsumgebung stoppen
 prod-down:
 	@echo "Stoppe PC PhotoWall Produktionsumgebung..."
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 	@echo "Produktionsumgebung gestoppt."
 
 # Produktionsumgebung neustarten
@@ -57,7 +63,7 @@ prod-restart: prod-down prod-up
 
 # Logs anzeigen
 prod-logs:
-	docker-compose logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 # Vollständiger Reset: Dev + Prod + Daten löschen
 clean:
@@ -78,9 +84,9 @@ clean:
 		echo ""; \
 	fi
 	@echo "1/4 Stoppe und entferne Produktionsumgebung..."
-	@docker-compose down -v --remove-orphans 2>/dev/null || true
+	@$(DOCKER_COMPOSE) down -v --remove-orphans 2>/dev/null || true
 	@echo "2/4 Stoppe und entferne Entwicklungsumgebung..."
-	@docker-compose -f docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml down -v --remove-orphans 2>/dev/null || true
 	@echo "3/4 Entferne hochgeladene Daten und Logs..."
 	@rm -rf app/data/*/ 2>/dev/null || true
 	@rm -rf app/uploads/*/ 2>/dev/null || true
@@ -105,14 +111,14 @@ setup:
 # Container-Status anzeigen
 prod-status:
 	@echo "Container-Status:"
-	docker-compose ps
+	$(DOCKER_COMPOSE) ps
 
 # Entwicklungs-Befehle (mit phpMyAdmin)
 
 # Entwicklungsumgebung starten
 dev-up:
 	@echo "Starte PC PhotoWall Entwicklungsumgebung mit phpMyAdmin..."
-	docker-compose -f docker-compose.dev.yml up -d
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up -d
 	@echo "Entwicklungsumgebung gestartet!"
 	@echo "Webanwendung: http://localhost:4000"
 	@echo "phpMyAdmin: http://localhost:8081"
@@ -120,7 +126,7 @@ dev-up:
 # Entwicklungsumgebung stoppen
 dev-down:
 	@echo "Stoppe PC PhotoWall Entwicklungsumgebung..."
-	docker-compose -f docker-compose.dev.yml down
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml down
 	@echo "Entwicklungsumgebung gestoppt."
 
 # Entwicklungsumgebung neustarten
@@ -128,12 +134,12 @@ dev-restart: dev-down dev-up
 
 # Entwicklungs-Logs anzeigen
 dev-logs:
-	docker-compose -f docker-compose.dev.yml logs -f
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml logs -f
 
 # Entwicklungs-Container-Status anzeigen
 dev-status:
 	@echo "Entwicklungs-Container-Status:"
-	@docker-compose -f docker-compose.dev.yml ps
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml ps
 
 # Test-Befehle
 

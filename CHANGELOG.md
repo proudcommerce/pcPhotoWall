@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.1] - 2025-10-21
+
+- Docker Compose Erkennung verbessert
+- Backup- und Restore-Scripte überarbeitet
+
 ## [1.8.0] - 2025-10-17
 
 - Restore-Funktion nur Datenbank

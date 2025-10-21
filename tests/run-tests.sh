@@ -5,6 +5,13 @@
 
 set -e
 
+# Docker Compose Befehl automatisch erkennen (docker-compose vs docker compose)
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    DOCKER_COMPOSE="docker compose"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -33,8 +40,8 @@ check_dev_environment() {
     print_status $BLUE "Prüfe Dev-Umgebung..."
     
     # Check if dev containers are running
-    local web_status=$(docker-compose -f "$PROJECT_ROOT/docker-compose.dev.yml" ps web 2>/dev/null | grep -c "Up")
-    local db_status=$(docker-compose -f "$PROJECT_ROOT/docker-compose.dev.yml" ps db 2>/dev/null | grep -c "Up")
+    local web_status=$($DOCKER_COMPOSE -f "$PROJECT_ROOT/docker-compose.dev.yml" ps web 2>/dev/null | grep -c "Up")
+    local db_status=$($DOCKER_COMPOSE -f "$PROJECT_ROOT/docker-compose.dev.yml" ps db 2>/dev/null | grep -c "Up")
     
     if [ "$web_status" -eq 0 ] || [ "$db_status" -eq 0 ]; then
         print_status $RED "❌ Dev-Umgebung läuft nicht!"

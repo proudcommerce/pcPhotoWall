@@ -4,6 +4,57 @@
 
 set -e
 
+# Docker Compose Befehl automatisch erkennen (docker-compose vs docker compose)
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    DOCKER_COMPOSE="docker compose"
+fi
+
+# Environment detection function
+detect_environment() {
+    local dev_running=false
+    local prod_running=false
+    
+    # Check if dev environment is running (look for phpmyadmin container)
+    if $DOCKER_COMPOSE -f docker-compose.dev.yml ps | grep -q "phpmyadmin.*Up" 2>/dev/null; then
+        dev_running=true
+    fi
+    
+    # Check if prod environment is running (no phpmyadmin container)
+    if $DOCKER_COMPOSE ps | grep -q "Up" 2>/dev/null && ! $DOCKER_COMPOSE ps | grep -q "phpmyadmin" 2>/dev/null; then
+        prod_running=true
+    fi
+    
+    if [ "$dev_running" = true ]; then
+        echo "development"
+    elif [ "$prod_running" = true ]; then
+        echo "production"
+    else
+        echo "none"
+    fi
+}
+
+# Detect running environment
+ENVIRONMENT=$(detect_environment)
+
+# Set compose file based on environment
+case "$ENVIRONMENT" in
+    "production")
+        COMPOSE_FILE=""
+        echo -e "${BLUE}Using production environment${NC}"
+        ;;
+    "development")
+        COMPOSE_FILE="-f docker-compose.dev.yml"
+        echo -e "${BLUE}Using development environment${NC}"
+        ;;
+    "none")
+        echo -e "${RED}Error: No Docker containers are running.${NC}"
+        echo -e "${YELLOW}Start with 'make dev-up' or 'make prod-up'${NC}"
+        exit 1
+        ;;
+esac
+
 # Load environment variables
 if [ -f .env ]; then
     while IFS= read -r line; do
@@ -57,11 +108,7 @@ if [ ! -f "$BACKUP_FILE" ]; then
     exit 1
 fi
 
-# Check if docker-compose is running
-if ! docker-compose -f docker-compose.dev.yml ps | grep -q "Up"; then
-    echo -e "${RED}Error: Docker containers are not running. Start with 'make dev-up'${NC}"
-    exit 1
-fi
+# Environment already detected above, no need to check again
 
 echo -e "${YELLOW}Database-only restore from: $BACKUP_FILE${NC}"
 echo -e "${BLUE}Note: Photos will NOT be restored${NC}"
@@ -144,7 +191,7 @@ if [ "$IS_FULL_BACKUP" = true ]; then
     fi
 
     echo "Restoring complete database..."
-    docker-compose -f docker-compose.dev.yml exec -T db mysql \
+    $DOCKER_COMPOSE $COMPOSE_FILE exec -T db mysql \
         -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
         < "$SQL_FILE"
 
@@ -156,7 +203,7 @@ else
     echo -e "${BLUE}Photos will NOT be restored${NC}"
 
     # Check if event already exists
-    EVENT_EXISTS=$(docker-compose -f docker-compose.dev.yml exec -T db mysql \
+    EVENT_EXISTS=$($DOCKER_COMPOSE $COMPOSE_FILE exec -T db mysql \
         -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
         -se "SELECT COUNT(*) FROM events WHERE event_slug='${EVENT_SLUG}'" 2>/dev/null || echo "0")
 
@@ -174,23 +221,23 @@ else
         echo "Removing existing database entries..."
 
         # First get event_id
-        EVENT_ID=$(docker-compose -f docker-compose.dev.yml exec -T db mysql \
+        EVENT_ID=$($DOCKER_COMPOSE $COMPOSE_FILE exec -T db mysql \
             -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
             -se "SELECT id FROM events WHERE event_slug='${EVENT_SLUG}'")
 
         # Delete photos using event_id (photos table has event_id, not event_slug)
-        docker-compose -f docker-compose.dev.yml exec -T db mysql \
+        $DOCKER_COMPOSE $COMPOSE_FILE exec -T db mysql \
             -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
             -e "DELETE FROM photos WHERE event_id=${EVENT_ID}"
 
         # Delete event
-        docker-compose -f docker-compose.dev.yml exec -T db mysql \
+        $DOCKER_COMPOSE $COMPOSE_FILE exec -T db mysql \
             -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
             -e "DELETE FROM events WHERE event_slug='${EVENT_SLUG}'"
     fi
 
     echo "Restoring event database..."
-    docker-compose -f docker-compose.dev.yml exec -T db mysql \
+    $DOCKER_COMPOSE $COMPOSE_FILE exec -T db mysql \
         -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" \
         < "$SQL_FILE"
 
