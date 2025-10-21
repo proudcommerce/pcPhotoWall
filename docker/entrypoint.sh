@@ -18,11 +18,11 @@ if [ ! -d "/var/www/html/vendor" ] || [ ! -f "/var/www/html/vendor/autoload.php"
     
     # Install dependencies
     cd /var/www/html
-    composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+    /usr/bin/composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
     
     # Run post-install scripts if they exist
     if [ -f "/var/www/html/composer.json" ]; then
-        composer run-script post-install-cmd --no-interaction || true
+        /usr/bin/composer run-script post-install-cmd --no-interaction || true
     fi
     
     echo "Composer dependencies installed successfully."
