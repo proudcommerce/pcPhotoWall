@@ -67,6 +67,9 @@ RUN apt-get update && apt-get install -y \
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
+# Copy Composer from builder stage (needed for runtime dependency installation)
+COPY --from=builder /usr/bin/composer /usr/bin/composer
+
 # Configure PHP settings
 RUN echo 'upload_max_filesize = 10G' >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo 'post_max_size = 10G' >> /usr/local/etc/php/conf.d/uploads.ini \

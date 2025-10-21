@@ -2,18 +2,36 @@
 set -e
 
 # Entrypoint script for PC PhotoWall
-# Verifies dependencies and prepares environment before starting Apache
+# Ensures Composer dependencies are installed before starting Apache
 
 echo "Starting PC PhotoWall entrypoint..."
 
-# Verify vendor directory exists (should be copied from builder stage)
+# Check if vendor directory exists and has dependencies
 if [ ! -d "/var/www/html/vendor" ] || [ ! -f "/var/www/html/vendor/autoload.php" ]; then
-    echo "WARNING: Composer dependencies not found in /var/www/html/vendor/"
-    echo "This should not happen if the Docker image was built correctly."
-    echo "The dependencies should be installed during the build stage."
-    echo "Please rebuild the Docker image: docker-compose build --no-cache"
+    echo "Composer dependencies not found. Attempting to install..."
+
+    # Check if composer.json exists
+    if [ ! -f "/var/www/html/composer.json" ]; then
+        echo "ERROR: composer.json not found in /var/www/html/"
+        echo "Cannot install dependencies without composer.json"
+        exit 1
+    fi
+
+    # Check if Composer is available
+    if command -v composer >/dev/null 2>&1; then
+        echo "Installing dependencies with Composer..."
+        cd /var/www/html
+        composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+        echo "Composer dependencies installed successfully."
+    else
+        echo "ERROR: Composer not found in container"
+        echo "Please either:"
+        echo "  1. Install dependencies locally: cd app && composer install"
+        echo "  2. Rebuild Docker image: docker-compose build --no-cache"
+        exit 1
+    fi
 else
-    echo "Composer dependencies verified."
+    echo "Composer dependencies already installed."
 fi
 
 # Ensure required directories exist with proper permissions
