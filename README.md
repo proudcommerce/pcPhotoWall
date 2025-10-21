@@ -1,4 +1,4 @@
-# 📸 PC PhotoWall
+# 📸 pcPhotoWall
 
 [![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
@@ -271,7 +271,7 @@ DB_PASS=photowall             # DB-Passwort (ÄNDERN!)
 #### App Configuration
 
 ```bash
-APP_NAME=PC PhotoWall         # Anzeigename der App
+APP_NAME=pcPhotoWall         # Anzeigename der App
 APP_URL=http://localhost:4000 # Basis-URL (mit https:// für Production)
 APP_ENV=development           # development|production
 ```
