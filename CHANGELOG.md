@@ -4,6 +4,7 @@
 
 - Docker Compose Erkennung verbessert
 - Backup- und Restore-Scripte überarbeitet
+- Problem Composer Installation behoben
 
 ## [1.8.0] - 2025-10-17
 

@@ -80,6 +80,10 @@ RUN a2enmod rewrite headers
 # Copy Apache VirtualHost configuration
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 
+# Copy entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Set working directory
 WORKDIR /var/www/html
 
@@ -98,5 +102,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
-# Start Apache in foreground
-CMD ["apache2-foreground"]
+# Use entrypoint script
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -1,6 +1,5 @@
 # Composer
 /app/vendor/
-/app/composer.lock
 
 # Environment
 .env
