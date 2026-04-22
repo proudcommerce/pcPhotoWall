@@ -7,9 +7,10 @@ app/.env
 .env.*
 !.env.example
 
-# Upload directories
+# Upload directories — .htaccess muss versioniert werden (Defense-in-Depth)
 /app/uploads/
-/app/data/
+/app/data/*
+!/app/data/.htaccess
 /app/logs/
 
 # Logs

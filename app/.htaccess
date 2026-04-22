@@ -31,6 +31,9 @@ RewriteRule ^(vendor|includes|config|scripts|tests)(/.*)?$ - [F,L]
 RewriteRule ^assets/ - [L]
 RewriteRule ^[a-z0-9-]+/assets/(.*)$ assets/$1 [L]
 
+# PHP-/Script-Ausfuehrung in data/ hart blocken (Defense-in-Depth gegen Polyglot-Uploads)
+RewriteRule ^data/.*\.(php|phtml|phar|phps|php[0-9]+|pl|py|cgi|sh)$ - [F,L,NC]
+
 # Handle data directory (photos and logos) - MUST be before event routes
 # Allow direct access to data directory files
 RewriteRule ^data/ - [L]

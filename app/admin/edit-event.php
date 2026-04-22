@@ -4,8 +4,8 @@ require_once '../includes/functions.php';
 require_once '../includes/geo.php';
 require_once '../config/database.php';
 
-// Check admin authentication
-if (!isset($_SESSION['admin_logged_in'])) {
+// Check admin authentication (inkl. Session-Timeout)
+if (!isAdminSessionValid()) {
     header('Location: index.php');
     exit;
 }
@@ -34,10 +34,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate CSRF token
     if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
         $errors[] = 'Ungültiger CSRF-Token. Bitte versuchen Sie es erneut.';
+    } elseif (isset($_POST['delete_logo'])) {
+        // Logo-Loeschen ist ein separater Flow — keine Event-Pflichtfelder validieren.
+        try {
+            $database = new Database();
+            $conn = $database->getConnection();
+
+            $stmt = $conn->prepare("SELECT logo_filename FROM events WHERE id = ?");
+            $stmt->execute([$eventId]);
+            $currentLogo = $stmt->fetchColumn();
+
+            if ($currentLogo) {
+                $uploadPaths = getEventUploadPaths($event['event_slug']);
+                $logoPath = $uploadPaths['logos_path'] . '/' . $currentLogo;
+                if (is_file($logoPath)) {
+                    @unlink($logoPath);
+                }
+                $stmt = $conn->prepare("UPDATE events SET logo_filename = NULL, show_logo = 0 WHERE id = ?");
+                $stmt->execute([$eventId]);
+            }
+
+            header('Location: edit-event.php?slug=' . urlencode($eventSlug));
+            exit;
+        } catch (Exception $e) {
+            error_log('Delete logo error: ' . $e->getMessage());
+            $errors[] = 'Fehler beim Löschen des Logos.';
+        }
     } else {
         $name = sanitizeInput($_POST['name'] ?? '');
-        $latitude = !empty($_POST['latitude']) ? (float)$_POST['latitude'] : null;
-        $longitude = !empty($_POST['longitude']) ? (float)$_POST['longitude'] : null;
+        $latitude = (isset($_POST['latitude']) && $_POST['latitude'] !== '') ? (float)$_POST['latitude'] : null;
+        $longitude = (isset($_POST['longitude']) && $_POST['longitude'] !== '') ? (float)$_POST['longitude'] : null;
         $radiusMeters = (int)($_POST['radius_meters'] ?? 100);
         $displayMode = $_POST['display_mode'] ?? 'random';
         $displayCount = (int)($_POST['display_count'] ?? 1);
@@ -65,8 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Only validate GPS coordinates if GPS validation is required
-    if ($gpsValidationRequired && !GeoUtils::validateCoordinates($latitude, $longitude)) {
-        $errors[] = 'Ungültige GPS-Koordinaten';
+    if ($gpsValidationRequired) {
+        if ($latitude === null || $longitude === null || !GeoUtils::validateCoordinates($latitude, $longitude)) {
+            $errors[] = 'Ungültige GPS-Koordinaten';
+        }
     }
     
     if ($radiusMeters < 10 || $radiusMeters > 10000) {
@@ -92,82 +120,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $displayCount = 1; // Default to 1 if invalid
     }
     
-    // Handle logo deletion
-    if (isset($_POST['delete_logo']) && isset($_POST['csrf_token']) && validateCSRFToken($_POST['csrf_token'])) {
-        try {
-            $database = new Database();
-            $conn = $database->getConnection();
-            
-            // Get current logo filename
-            $stmt = $conn->prepare("SELECT logo_filename FROM events WHERE id = ?");
-            $stmt->execute([$eventId]);
-            $currentLogo = $stmt->fetchColumn();
-            
-            if ($currentLogo) {
-                // Delete logo file using event-specific path
-                $uploadPaths = getEventUploadPaths($event['event_slug']);
-                $logoPath = $uploadPaths['logos_path'] . '/' . $currentLogo;
-                if (file_exists($logoPath)) {
-                    unlink($logoPath);
-                }
-                
-                // Update database to remove logo
-                $stmt = $conn->prepare("UPDATE events SET logo_filename = NULL, show_logo = 0 WHERE id = ?");
-                $stmt->execute([$eventId]);
-                
-                $success = 'Logo wurde erfolgreich gelöscht!';
-                
-                // Reload event data
-                $event = getEventBySlug($eventSlug);
-                
-                // Auto-reload page after 2 seconds to show updated data
-                header("refresh:2;url=edit-event.php?slug=" . urlencode($eventSlug));
-            }
-        } catch (Exception $e) {
-            error_log('Delete logo error: ' . $e->getMessage());
-            $errors[] = 'Fehler beim Löschen des Logos.';
-        }
-    }
-    
-    // Handle logo upload
+    // Handle logo upload (mit voller MIME-/Size-/Bild-Validierung, max. 2 MB)
     $logoFilename = null;
     if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-        // Use event-specific upload paths
-        $uploadPaths = getEventUploadPaths($event['event_slug']);
-        $uploadDir = $uploadPaths['logos_path'];
-        
-        // Ensure directory exists
-        ensureEventDirectories($event['event_slug']);
-        
-        $fileExtension = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $logoErrors = validateLogoUpload($_FILES['logo']);
+        if (!empty($logoErrors)) {
+            $errors = array_merge($errors, $logoErrors);
+        } else {
+            $uploadPaths = getEventUploadPaths($event['event_slug']);
+            $uploadDir = $uploadPaths['logos_path'];
+            ensureEventDirectories($event['event_slug']);
 
-        if (in_array($fileExtension, $allowedExtensions)) {
+            $fileExtension = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
             $logoFilename = uniqid() . '_' . time() . '.' . $fileExtension;
             $uploadPath = $uploadDir . '/' . $logoFilename;
 
             if (!move_uploaded_file($_FILES['logo']['tmp_name'], $uploadPath)) {
                 $errors[] = 'Fehler beim Hochladen des Logos';
+                $logoFilename = null;
             }
-        } else {
-            $errors[] = 'Ungültiges Logo-Format. Erlaubt: JPG, PNG, GIF, WebP';
         }
     }
 
     if (empty($errors)) {
+        $database = new Database();
+        $conn = $database->getConnection();
+        $transactionOpen = false;
         try {
-            $database = new Database();
-            $conn = $database->getConnection();
-            
-            // Get current logo filename
-            $currentLogo = null;
-            if ($logoFilename === null) {
-                $stmt = $conn->prepare("SELECT logo_filename FROM events WHERE id = ?");
-                $stmt->execute([$eventId]);
-                $currentLogo = $stmt->fetchColumn();
-            }
-            
-            // Update event (slug cannot be changed after creation)
+            // Alten Logo-Namen immer holen (fuer Ersatz-Cleanup oder Fallback).
+            $stmt = $conn->prepare("SELECT logo_filename FROM events WHERE id = ?");
+            $stmt->execute([$eventId]);
+            $previousLogo = $stmt->fetchColumn() ?: null;
+
+            $conn->beginTransaction();
+            $transactionOpen = true;
+
             $stmt = $conn->prepare("
                 UPDATE events
                 SET name = ?, latitude = ?, longitude = ?, radius_meters = ?,
@@ -178,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE id = ?
             ");
 
-            $finalLogoFilename = $logoFilename !== null ? $logoFilename : $currentLogo;
+            $finalLogoFilename = $logoFilename !== null ? $logoFilename : $previousLogo;
 
             $stmt->execute([
                 $name, $latitude, $longitude, $radiusMeters, $displayMode,
@@ -186,29 +173,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $overlayOpacity, $gpsValidationRequired, $moderationRequired, $note, $isActive,
                 $finalLogoFilename, $showLogo, $showQrCode, $showDisplayLink, $showGalleryLink, $uploadEnabled, $eventId
             ]);
-            
-            // Update display config
+
             $stmt = $conn->prepare("
-                UPDATE display_config 
+                UPDATE display_config
                 SET max_photos = ?, display_mode = ?, refresh_interval = ?
                 WHERE event_id = ?
             ");
-            
+
             $stmt->execute([
                 $displayCount, $displayMode, $displayInterval, $eventId
             ]);
-            
+
+            $conn->commit();
+            $transactionOpen = false;
+
+            // Altes Logo erst NACH erfolgreichem Commit entfernen (Orphan-Schutz).
+            if ($logoFilename !== null && $previousLogo !== null && $previousLogo !== $logoFilename) {
+                $uploadPaths = getEventUploadPaths($event['event_slug']);
+                $oldLogoPath = $uploadPaths['logos_path'] . '/' . $previousLogo;
+                if (is_file($oldLogoPath)) {
+                    @unlink($oldLogoPath);
+                }
+            }
+
             $success = 'Event erfolgreich aktualisiert!';
-            
-            // Reload event data after successful update
             $event = getEventBySlug($eventSlug);
-            
-            // Auto-reload page after 2 seconds to show updated data
             header("refresh:2;url=edit-event.php?slug=" . urlencode($eventSlug));
-            
+
         } catch (Exception $e) {
+            if ($transactionOpen && $conn->inTransaction()) {
+                $conn->rollBack();
+            }
             error_log('Update event error: ' . $e->getMessage());
             $errors[] = 'Fehler beim Aktualisieren des Events.';
+            // Orphan-Schutz: neu hochgeladenes Logo bei DB-Fehler entfernen.
+            if ($logoFilename !== null) {
+                $uploadPaths = getEventUploadPaths($event['event_slug']);
+                $orphanPath = $uploadPaths['logos_path'] . '/' . $logoFilename;
+                if (is_file($orphanPath)) {
+                    @unlink($orphanPath);
+                }
+                $logoFilename = null;
+            }
         }
     }
     }
@@ -306,7 +312,7 @@ $csrfToken = generateCSRFToken();
                         <div class="form-group">
                             <label for="logo">Logo ändern (optional)</label>
                             <input type="file" id="logo" name="logo" accept="image/*">
-                            <small>Erlaubte Formate: JPG, PNG, GIF, SVG, WebP (max. 2MB)</small>
+                            <small>Erlaubte Formate: JPG, PNG, GIF, WebP (max. 2MB)</small>
                         </div>
                         
                         <div class="form-group">

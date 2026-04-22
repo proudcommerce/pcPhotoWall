@@ -33,8 +33,11 @@ try {
         sendErrorResponse('Event nicht gefunden oder nicht aktiv');
     }
     
-    sendSuccessResponse('Event-Konfiguration geladen', [
-        'event' => $event
+    // Frontend (app.js) erwartet data.event top-level — daher sendJSONResponse direkt.
+    sendJSONResponse([
+        'success' => true,
+        'message' => 'Event-Konfiguration geladen',
+        'event' => $event,
     ]);
     
 } catch (Exception $e) {

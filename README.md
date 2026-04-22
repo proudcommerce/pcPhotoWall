@@ -1,6 +1,6 @@
 # 📸 pcPhotoWall
 
-[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.9.1-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4.svg)](https://www.php.net/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -257,7 +257,7 @@ Enterprise-Grade Sicherheitsfeatures:
 
 ### Environment Variables (.env)
 
-Alle 28 konfigurierbaren Parameter im Überblick:
+Alle konfigurierbaren Parameter im Überblick:
 
 #### Database Configuration
 
@@ -323,9 +323,18 @@ QR_CODE_MARGIN=10             # QR-Code-Rand (px)
 #### Security Configuration
 
 ```bash
+# Bevorzugt: vorab gehashtes Admin-Passwort (password_hash / PASSWORD_BCRYPT)
+ADMIN_PASSWORD_HASH=          # z.B. Ergebnis von: php -r 'echo password_hash("geheim", PASSWORD_BCRYPT);'
+# Fallback (nur wenn ADMIN_PASSWORD_HASH leer ist) — NICHT für Production empfohlen
 ADMIN_PASSWORD=ChangeThisSecurePassword123!  # ÄNDERN!
 SESSION_TIMEOUT=3600          # Session-Timeout (Sekunden)
 CSRF_TOKEN_NAME=csrf_token    # Name des CSRF-Tokens
+```
+
+#### Database Root Password (für Docker-Setup)
+
+```bash
+DB_ROOT_PASS=ChangeThisRootPassword123!     # ÄNDERN! Wird für MYSQL_ROOT_PASSWORD verwendet
 ```
 
 #### Logging Configuration

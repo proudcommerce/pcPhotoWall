@@ -99,23 +99,41 @@ try {
     $filename = generateUniqueFilename($file['name']);
     $uploadPath = $uploadPaths['photos_path'] . '/' . $filename;
     
+    // Tracking aller erzeugten Dateien, damit jeder Fehlerpfad zentral aufgeraeumt werden kann.
+    $createdFiles = [];
+    $registerFile = function (string $path) use (&$createdFiles): void {
+        if ($path !== '') {
+            $createdFiles[$path] = true;
+        }
+    };
+    $cleanupFiles = function () use (&$createdFiles): void {
+        foreach (array_keys($createdFiles) as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+        $createdFiles = [];
+    };
+    $failAndCleanup = function (string $message, int $status = 400) use ($cleanupFiles): void {
+        $cleanupFiles();
+        sendErrorResponse($message, $status);
+    };
+
     // Move uploaded file temporarily for processing
     if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
         sendErrorResponse('Fehler beim Speichern der Datei');
     }
-    
+    $registerFile($uploadPath);
+
     // Calculate file hash for duplicate detection FIRST
     $fileHash = calculateFileHash($uploadPath);
     if (!$fileHash) {
-        unlink($uploadPath); // Clean up
-        sendErrorResponse('Fehler beim Berechnen des Datei-Hash');
+        $failAndCleanup('Fehler beim Berechnen des Datei-Hash');
     }
-    
+
     // Check for duplicates FIRST - before any other processing
     if (isDuplicatePhoto($fileHash, $eventId)) {
-        // Remove the uploaded file since it's a duplicate
-        unlink($uploadPath);
-        sendErrorResponse('Dieses Foto wurde bereits hochgeladen');
+        $failAndCleanup('Dieses Foto wurde bereits hochgeladen');
     }
     
     // GPS coordinates will be extracted after potential HEIC conversion
@@ -136,65 +154,59 @@ try {
         $jpegFilename = pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
         $jpegPath = $uploadPaths['photos_path'] . '/' . $jpegFilename;
         
+        $converted = false;
+
         // Try to convert HEIC to JPEG using ImageMagick PHP extension first
         if (extension_loaded('imagick')) {
             try {
                 $imagick = new Imagick();
                 $imagick->readImage($uploadPath);
-                
-                // Auto-orient HEIC image based on EXIF data before conversion
                 $imagick->autoOrient();
-                
                 $imagick->setImageFormat('jpeg');
                 $imagick->setImageCompressionQuality(90);
                 $imagick->writeImage($jpegPath);
                 $imagick->clear();
                 $imagick->destroy();
-                
+
                 if (file_exists($jpegPath)) {
-                    $finalPath = $jpegPath;
-                    $filename = $jpegFilename;
-                    $mimeType = 'image/jpeg';
-                    // Remove original HEIC file
-                    unlink($uploadPath);
+                    $converted = true;
                 } else {
-                    throw new Exception('ImageMagick conversion failed');
+                    throw new Exception('ImageMagick conversion produced no output');
                 }
             } catch (Exception $e) {
-                error_log("ImageMagick conversion failed: " . $e->getMessage());
-                // Fallback to command line conversion
-                $command = "magick convert " . escapeshellarg($uploadPath) . " -quality 90 " . escapeshellarg($jpegPath) . " 2>&1";
-                $output = [];
-                $returnCode = 0;
-                exec($command, $output, $returnCode);
-                
-                if ($returnCode === 0 && file_exists($jpegPath)) {
-                    $finalPath = $jpegPath;
-                    $filename = $jpegFilename;
-                    $mimeType = 'image/jpeg';
-                    unlink($uploadPath);
-                } else {
-                    throw new Exception('Both ImageMagick and command line conversion failed');
-                }
+                error_log('ImageMagick conversion failed: ' . $e->getMessage());
+                // Fall through zu CLI-Fallback
             }
-        } else {
-            // Fallback to command line conversion if PHP extension not available
-            $command = "magick convert " . escapeshellarg($uploadPath) . " -auto-orient -quality 90 " . escapeshellarg($jpegPath) . " 2>&1";
+        }
+
+        if (!$converted) {
+            $command = 'magick convert ' . escapeshellarg($uploadPath) . ' -auto-orient -quality 90 ' . escapeshellarg($jpegPath) . ' 2>&1';
             $output = [];
             $returnCode = 0;
             exec($command, $output, $returnCode);
-
             if ($returnCode === 0 && file_exists($jpegPath)) {
-                $finalPath = $jpegPath;
-                $filename = $jpegFilename;
-                $mimeType = 'image/jpeg';
-                unlink($uploadPath);
+                $converted = true;
             } else {
-                // Clean up failed upload
-                unlink($uploadPath);
-                error_log("HEIC conversion failed: " . implode(", ", $output));
-                sendErrorResponse('HEIC/HEIF-Konvertierung fehlgeschlagen. Bitte lade eine JPEG-Datei hoch oder verwende ein anderes Bildformat.');
+                error_log('HEIC conversion failed: ' . implode(', ', $output));
             }
+        }
+
+        // Aufraeumen: unabhaengig vom Ergebnis die Original-HEIC-Datei entfernen.
+        if (file_exists($uploadPath)) {
+            @unlink($uploadPath);
+        }
+
+        // Konvertiertes JPEG ebenfalls ins Cleanup-Tracking aufnehmen.
+        $registerFile($jpegPath);
+        // Original-HEIC-Pfad ist bereits entfernt — aus dem Tracking entfernen, damit Cleanup nicht erneut fehlschlaegt.
+        unset($createdFiles[$uploadPath]);
+
+        if ($converted) {
+            $finalPath = $jpegPath;
+            $filename = $jpegFilename;
+            $mimeType = 'image/jpeg';
+        } else {
+            $failAndCleanup('HEIC/HEIF-Konvertierung fehlgeschlagen. Bitte lade eine JPEG-Datei hoch oder verwende ein anderes Bildformat.');
         }
     }
     
@@ -229,7 +241,7 @@ try {
                     
                     if ($distance > $event['radius_meters']) {
                         $formattedDistance = GeoUtils::formatDistance($distance);
-                        sendErrorResponse("Foto wurde außerhalb des Event-Radius aufgenommen. Entfernung: {$formattedDistance} (max. {$event['radius_meters']}m)");
+                        $failAndCleanup("Foto wurde außerhalb des Event-Radius aufgenommen. Entfernung: {$formattedDistance} (max. {$event['radius_meters']}m)");
                     }
                 }
             }
@@ -252,11 +264,17 @@ try {
     $resizedFilename = 'resized_' . $filename;
     $resizedPath = $uploadPaths['photos_path'] . '/' . $resizedFilename;
     $resizeSuccess = resizeImage($finalPath, $resizedPath, 1920, 1080, 85);
-    
-    // Create thumbnail
+    if ($resizeSuccess) {
+        $registerFile($resizedPath);
+    }
+
+    // Create thumbnail (immer JPEG)
     $thumbnailFilename = 'thumb_' . pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
     $thumbnailPath = $uploadPaths['thumbnails_path'] . '/' . $thumbnailFilename;
     $thumbnailCreated = createThumbnail($finalPath, $thumbnailPath, 300, 300, 85);
+    if ($thumbnailCreated) {
+        $registerFile($thumbnailPath);
+    }
     
     // Get file info from final path (after potential conversion)
     $fileSize = filesize($finalPath);
@@ -287,7 +305,9 @@ try {
         $resizeSuccess ? $resizedFilename : null,
         $isActive
     ]);
-    
+
+    // DB-Insert erfolgreich: Dateien gehoeren jetzt zum Datenbestand, nicht mehr loeschen.
+    $createdFiles = [];
     $photoId = $conn->lastInsertId();
     
     // Set username in session if provided
@@ -327,6 +347,9 @@ try {
     
 } catch (Exception $e) {
     error_log("Upload error: " . $e->getMessage());
+    if (isset($cleanupFiles) && is_callable($cleanupFiles)) {
+        $cleanupFiles();
+    }
     sendErrorResponse('Server-Fehler beim Upload', 500);
 }
 ?>

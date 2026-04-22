@@ -61,10 +61,15 @@ run_test_suite() {
     
     print_status $BLUE "Running $test_name..."
     
+    # Wichtig: ohne pipefail liefert "php ... | tee" immer den Exit-Code von tee (0).
+    # Damit fehlgeschlagene PHP-Suites korrekt erkannt werden, pipefail explizit aktivieren.
+    set -o pipefail
     if php "$test_file" 2>&1 | tee -a "$TEST_LOG"; then
+        set +o pipefail
         print_status $GREEN "✅ $test_name passed"
         return 0
     else
+        set +o pipefail
         print_status $RED "❌ $test_name failed"
         return 1
     fi
@@ -127,7 +132,22 @@ run_all_tests() {
     if ! run_test_suite "$TESTS_DIR/DisplayConfigurationTests.php" "Display Configuration Tests"; then
         ((failed_tests++))
     fi
-    
+
+    # Run security unit tests (no dev env needed, but harmless to run here)
+    if ! run_test_suite "$TESTS_DIR/SecurityUnitTests.php" "Security Unit Tests"; then
+        ((failed_tests++))
+    fi
+
+    # Run security integration tests (HTTP against running dev env)
+    if ! run_test_suite "$TESTS_DIR/SecurityIntegrationTests.php" "Security Integration Tests"; then
+        ((failed_tests++))
+    fi
+
+    # Run schema integrity tests (MySQL on localhost:3306, dev env required)
+    if ! run_test_suite "$TESTS_DIR/SchemaIntegrityTests.php" "Schema Integrity Tests"; then
+        ((failed_tests++))
+    fi
+
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
     
@@ -216,6 +236,10 @@ show_help() {
     echo "  event-config  Run event configuration tests only"
     echo "  event-mgmt    Run event management tests only"
     echo "  display-config Run display configuration tests only"
+    echo "  security      Run all security tests (unit + integration if dev env up)"
+    echo "  security-unit Run security unit tests (no dev env needed)"
+    echo "  security-integration Run security integration tests (needs dev env)"
+    echo "  schema        Run schema integrity tests (MySQL columns/indexes/FKs)"
     echo "  quick         Run quick tests (comprehensive tests only)"
     echo "  syntax        Run PHP syntax check"
     echo "  watch         Run tests in watch mode (requires fswatch)"
@@ -267,6 +291,27 @@ case "${1:-test}" in
     "display-config")
         check_dev_environment || exit 1
         run_test_suite "$TESTS_DIR/DisplayConfigurationTests.php" "Display Configuration Tests"
+        ;;
+    "security-unit")
+        # Unit-Tests benoetigen weder DB noch HTTP
+        run_test_suite "$TESTS_DIR/SecurityUnitTests.php" "Security Unit Tests"
+        ;;
+    "security-integration")
+        check_dev_environment || exit 1
+        run_test_suite "$TESTS_DIR/SecurityIntegrationTests.php" "Security Integration Tests"
+        ;;
+    "schema")
+        check_dev_environment || exit 1
+        run_test_suite "$TESTS_DIR/SchemaIntegrityTests.php" "Schema Integrity Tests"
+        ;;
+    "security")
+        # Beide Security-Suites zusammen (Unit zuerst)
+        run_test_suite "$TESTS_DIR/SecurityUnitTests.php" "Security Unit Tests"
+        if check_dev_environment; then
+            run_test_suite "$TESTS_DIR/SecurityIntegrationTests.php" "Security Integration Tests"
+        else
+            print_status $YELLOW "Integration-Tests uebersprungen (Dev-Umgebung nicht verfuegbar)"
+        fi
         ;;
     "quick")
         run_quick_tests

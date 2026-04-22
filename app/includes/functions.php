@@ -143,65 +143,154 @@ function validateSlug(string $slug): bool {
 }
 
 // File Upload Functions
+function isIsoBmffHeic(string $filePath): bool {
+    // Prueft ISO-Base-Media-File-Format: Bytes 4..7 == 'ftyp', Bytes 8..11 ist der Brand.
+    $fh = @fopen($filePath, 'rb');
+    if (!$fh) {
+        return false;
+    }
+    $header = fread($fh, 32);
+    fclose($fh);
+    if ($header === false || strlen($header) < 12) {
+        return false;
+    }
+    if (substr($header, 4, 4) !== 'ftyp') {
+        return false;
+    }
+    $brand = strtolower(substr($header, 8, 4));
+    $compatibleBrands = strtolower(substr($header, 12, max(0, strlen($header) - 12)));
+    $heicBrands = ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1', 'heis', 'hevs'];
+    if (in_array($brand, $heicBrands, true)) {
+        return true;
+    }
+    foreach ($heicBrands as $b) {
+        if (strpos($compatibleBrands, $b) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function mimeToSafeExtension(string $mimeType): ?string {
+    return match ($mimeType) {
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp',
+        'image/heic' => 'heic',
+        'image/heif' => 'heif',
+        default => null,
+    };
+}
+
 function validateFileUpload(array $file, ?int $maxSize = null): array {
     $errors = [];
-    
+
     // Check if file was uploaded
     if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
         $errors[] = 'Keine Datei hochgeladen';
         return $errors;
     }
-    
+
     // Check file size if maxSize is provided
     if ($maxSize !== null && $file['size'] > $maxSize) {
         $maxSizeMB = round($maxSize / 1024 / 1024, 1);
         $fileSizeMB = round($file['size'] / 1024 / 1024, 1);
         $errors[] = "Datei zu groß: {$fileSizeMB}MB (Maximum: {$maxSizeMB}MB)";
     }
-    
-    
+
+    // Extension-Whitelist (defense-in-depth gegen Polyglot-Uploads wie x.php)
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'];
+    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($fileExtension, $allowedExtensions, true)) {
+        $errors[] = 'Dateiendung nicht erlaubt. Erlaubt: ' . strtoupper(implode(', ', $allowedExtensions));
+    }
+
     // Check file type
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mimeType = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
-    
-    // Also check file extension for HEIC/HEIF files (MIME detection can be unreliable)
-    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $isHeicFile = in_array($fileExtension, ['heic', 'heif']);
-    
-    if (!in_array($mimeType, UPLOAD_ALLOWED_TYPES) && !$isHeicFile) {
-        // Convert MIME types to file extensions for better user understanding
-        $allowedExtensions = [];
-        foreach (UPLOAD_ALLOWED_TYPES as $mime) {
-            switch ($mime) {
-                case 'image/jpeg': $allowedExtensions[] = 'JPG'; break;
-                case 'image/png': $allowedExtensions[] = 'PNG'; break;
-                case 'image/gif': $allowedExtensions[] = 'GIF'; break;
-                case 'image/webp': $allowedExtensions[] = 'WebP'; break;
-                case 'image/heic': $allowedExtensions[] = 'HEIC'; break;
-                case 'image/heif': $allowedExtensions[] = 'HEIF'; break;
-            }
+
+    $isHeicFile = in_array($fileExtension, ['heic', 'heif'], true);
+    $heicMimeTypes = ['image/heic', 'image/heif'];
+
+    // MIME-Whitelist strikt pruefen. Fuer HEIC/HEIF erlauben wir zusaetzlich application/octet-stream,
+    // aber NUR wenn der ISO-BMFF-Header korrekt ist (ftyp-Brand heic/heix/hevc/hevx/mif1/msf1/heis).
+    $mimeAllowed = in_array($mimeType, UPLOAD_ALLOWED_TYPES, true);
+    if (!$mimeAllowed && $isHeicFile) {
+        if (in_array($mimeType, $heicMimeTypes, true)) {
+            $mimeAllowed = true;
+        } elseif ($mimeType === 'application/octet-stream' && isIsoBmffHeic($file['tmp_name'])) {
+            $mimeAllowed = true;
         }
-        $errors[] = 'Dateityp nicht erlaubt. Erlaubt: ' . implode(', ', $allowedExtensions);
     }
-    
+
+    if (!$mimeAllowed) {
+        $labelMap = [
+            'image/jpeg' => 'JPG',
+            'image/png' => 'PNG',
+            'image/gif' => 'GIF',
+            'image/webp' => 'WebP',
+            'image/heic' => 'HEIC',
+            'image/heif' => 'HEIF',
+        ];
+        $allowedLabels = array_values(array_intersect_key($labelMap, array_flip(UPLOAD_ALLOWED_TYPES)));
+        $errors[] = 'Dateityp nicht erlaubt. Erlaubt: ' . implode(', ', $allowedLabels);
+    }
+
     // Check if it's actually an image
     $imageInfo = @getimagesize($file['tmp_name']);
-    if ($imageInfo === false) {
-        // Special check for HEIC/HEIF files (both MIME type and file extension)
-        if (in_array($mimeType, ['image/heic', 'image/heif']) || $isHeicFile) {
-            // HEIC files might not be recognized by getimagesize
-            // We'll allow them and let the upload process handle conversion
-        } else {
-            $errors[] = 'Datei ist kein gültiges Bild';
-        }
+    if ($imageInfo === false && !$isHeicFile) {
+        // HEIC wird von getimagesize() evtl. nicht erkannt — dort greift die MIME-/Extension-Kombi oben.
+        $errors[] = 'Datei ist kein gültiges Bild';
     }
     
     return $errors;
 }
 
-function generateUniqueFilename(string $originalName): string {
-    $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+function validateLogoUpload(array $file, int $maxSize = 2097152): array {
+    $errors = [];
+
+    if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
+        $errors[] = 'Keine Datei hochgeladen';
+        return $errors;
+    }
+
+    if ($file['size'] > $maxSize) {
+        $maxMB = round($maxSize / 1024 / 1024, 1);
+        $errors[] = "Logo zu groß (Maximum: {$maxMB}MB)";
+    }
+
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($fileExtension, $allowedExtensions, true)) {
+        $errors[] = 'Ungültiges Logo-Format. Erlaubt: JPG, PNG, GIF, WebP';
+    }
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($mimeType, $allowedMimes, true)) {
+        $errors[] = 'Logo-MIME-Type nicht erlaubt';
+    }
+
+    if (@getimagesize($file['tmp_name']) === false) {
+        $errors[] = 'Logo ist kein gültiges Bild';
+    }
+
+    return $errors;
+}
+
+function generateUniqueFilename(string $originalName, ?string $forcedExtension = null): string {
+    if ($forcedExtension !== null) {
+        $extension = $forcedExtension;
+    } else {
+        $rawExt = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        // Fallback-Whitelist: nur bekannte Bild-Endungen durchreichen, alles andere auf jpg zwingen.
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'];
+        $extension = in_array($rawExt, $allowed, true) ? $rawExt : 'jpg';
+    }
     return uniqid() . '_' . time() . '.' . $extension;
 }
 
@@ -592,6 +681,33 @@ function generateQRCodeDataUri(string $data, int $size = QR_CODE_DEFAULT_SIZE): 
 }
 
 // Session Functions
+function isAdminSessionValid(): bool {
+    if (empty($_SESSION['admin_logged_in'])) {
+        return false;
+    }
+    $lastActivity = $_SESSION['admin_last_activity'] ?? null;
+    if ($lastActivity !== null && (time() - (int)$lastActivity) > SESSION_TIMEOUT) {
+        // Abgelaufene Session vollstaendig verwerfen
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
+        }
+        session_destroy();
+        return false;
+    }
+    $_SESSION['admin_last_activity'] = time();
+    return true;
+}
+
 function setUserSession(?string $username = null): void {
     if ($username) {
         $_SESSION['username'] = $username;

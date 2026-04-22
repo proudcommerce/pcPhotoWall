@@ -84,8 +84,8 @@ make restore backups/picturewall_backup_demo-event_20250115_143022.tar.gz
 # or: make restore FILE=path/to/backup.tar.gz
 
 # Restore database only (without photos)
-make restore-db-only backups/picturewall_backup_demo-event_20250115_143022.tar.gz
-# or: make restore-db-only FILE=path/to/backup.tar.gz
+make restore-db backups/picturewall_backup_demo-event_20250115_143022.tar.gz
+# or: make restore-db FILE=path/to/backup.tar.gz
 ```
 
 **Note:** Backups include event photos and database dump. Stored in `backups/` directory.
@@ -179,7 +179,7 @@ All application files are organized in the `app/` directory (wwwroot), with test
 **File & Image Processing:**
 - `validateFileUpload($file, $maxSize)` - Validates uploaded files
 - `generateUniqueFilename($originalName)` - Creates unique timestamped filename
-- `calculateFileHash($filePath)` - MD5 hash for duplicate detection
+- `calculateFileHash($filePath)` - SHA-256 hash for duplicate detection
 - `autoRotateImage($imagePath)` - Corrects EXIF orientation
 - `createThumbnail($sourcePath, $destPath, $maxWidth, $maxHeight)` - Creates thumbnails
 - `convertHeicToJpeg($sourcePath, $destPath)` - Converts HEIC/HEIF to JPEG using ImageMagick
@@ -219,6 +219,9 @@ All application files are organized in the `app/` directory (wwwroot), with test
 - `EventConfigurationTests.php` - Event config validation
 - `EventManagementTests.php` - Event CRUD operations
 - `DisplayConfigurationTests.php` - Display settings validation
+- `SchemaIntegrityTests.php` - Datenbankschema- und Index-Integrität
+- `SecurityUnitTests.php` - Security-Unit-Tests (CSRF, Auth, Sanitization)
+- `SecurityIntegrationTests.php` - Security-Integration-Tests (End-to-End)
 
 Tests can be run via `make test` or directly with `php tests/[TestFile].php`.
 
@@ -265,20 +268,20 @@ No framework routing - uses `app/.htaccess` rewriting:
 - `/[event-slug]/gallery` → `app/gallery.php?event_slug=[slug]`
 
 ### Session Management
-- Sessions started in `app/config/config.php`
+- Sessions started in `app/config/config.php` (HttpOnly, Secure, SameSite-Cookie-Flags, kein doppeltes `session_start()`)
 - CSRF tokens stored in session
-- Admin password stored in session on login
-- No user accounts - single admin password from `app/.env`
+- Admin-Auth via `password_verify()` gegen `ADMIN_PASSWORD_HASH` (bevorzugt); `ADMIN_PASSWORD` als Klartext-Fallback per `hash_equals()`. Login-Erfolg triggert `session_regenerate_id(true)`.
+- No user accounts - single admin credential aus `app/.env`
 
 ### Environment Variables (.env)
 
 Configuration loaded from `app/.env` file (copied from root `.env` during deployment). All parameters have sensible defaults - see `.env.example` for complete reference.
 
-**Critical Configuration (28 parameters total):**
+**Critical Configuration:**
 
-- **Database:** DB_HOST, DB_NAME, DB_USER, DB_PASS
+- **Database:** DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_ROOT_PASS (Docker-Root), MYSQL_ROOT_PASSWORD/MYSQL_DATABASE/MYSQL_USER/MYSQL_PASSWORD (Container-Init)
 - **App:** APP_NAME, APP_URL, APP_ENV (development|production)
-- **Security:** ADMIN_PASSWORD, SESSION_TIMEOUT, CSRF_TOKEN_NAME
+- **Security:** ADMIN_PASSWORD_HASH (bevorzugt), ADMIN_PASSWORD (Fallback, Klartext), SESSION_TIMEOUT, CSRF_TOKEN_NAME
 - **Upload:** UPLOAD_ALLOWED_TYPES, DEFAULT_MAX_UPLOAD_SIZE, MAX_EXECUTION_TIME, MEMORY_LIMIT
 - **Image Processing:** IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT, IMAGE_QUALITY_HIGH/MEDIUM, THUMBNAIL_MAX_WIDTH/HEIGHT/QUALITY
 - **Display Defaults:** DEFAULT_DISPLAY_COUNT, DEFAULT_DISPLAY_INTERVAL, DEFAULT_DISPLAY_MODE, DEFAULT_GRID_COLUMNS

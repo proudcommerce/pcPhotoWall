@@ -175,15 +175,7 @@ class ImageProcessor {
     }
 
     /**
-     * Create a thumbnail from an image
-     *
-     * @param string $sourcePath Source image path
-     * @param string $destinationPath Destination path for thumbnail
-     * @param int $maxWidth Maximum thumbnail width
-     * @param int $maxHeight Maximum thumbnail height
-     * @param int $quality Quality for JPEG
-     * @return bool Success status
-     * @throws ImageProcessingException
+     * Create a thumbnail from an image — always saved as JPEG.
      */
     public static function createThumbnail(
         string $sourcePath,
@@ -192,8 +184,44 @@ class ImageProcessor {
         int $maxHeight = THUMBNAIL_MAX_HEIGHT,
         int $quality = THUMBNAIL_QUALITY
     ): bool {
-        // Thumbnails are always saved as JPEG for consistency and file size
-        return self::resize($sourcePath, $destinationPath, $maxWidth, $maxHeight, $quality);
+        $imageInfo = getimagesize($sourcePath);
+        if ($imageInfo === false) {
+            throw new ImageProcessingException("Failed to read image information from: {$sourcePath}");
+        }
+        $sourceMime = $imageInfo['mime'];
+        $dimensions = self::calculateDimensions($imageInfo[0], $imageInfo[1], $maxWidth, $maxHeight);
+
+        $source = self::createImageResource($sourcePath, $sourceMime);
+        if ($source === false) {
+            throw new ImageProcessingException("Failed to create image resource from: {$sourcePath}");
+        }
+
+        $thumb = imagecreatetruecolor($dimensions['width'], $dimensions['height']);
+        if ($thumb === false) {
+            imagedestroy($source);
+            throw new ImageProcessingException('Failed to create thumbnail resource');
+        }
+
+        // Transparenz mit weissem Hintergrund ersetzen, weil JPEG kein Alpha unterstuetzt.
+        $white = imagecolorallocate($thumb, 255, 255, 255);
+        imagefilledrectangle($thumb, 0, 0, $dimensions['width'], $dimensions['height'], $white);
+
+        imagecopyresampled(
+            $thumb,
+            $source,
+            0, 0, 0, 0,
+            $dimensions['width'],
+            $dimensions['height'],
+            $imageInfo[0],
+            $imageInfo[1]
+        );
+
+        $result = imagejpeg($thumb, $destinationPath, $quality);
+
+        imagedestroy($source);
+        imagedestroy($thumb);
+
+        return (bool)$result;
     }
 }
 ?>

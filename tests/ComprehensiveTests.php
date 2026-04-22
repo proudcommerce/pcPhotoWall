@@ -207,12 +207,17 @@ class ComprehensiveTests {
             
             $errors = validateFileUpload($invalidFile, 2048);
             assertFalse(empty($errors), 'Invalid file type should fail validation');
-            assertContains('Dateityp nicht erlaubt', $errors[0], 'Error message should mention file type');
-            
+            $joined = implode(' | ', $errors);
+            assertTrue(
+                strpos($joined, 'Dateityp nicht erlaubt') !== false
+                || strpos($joined, 'Dateiendung nicht erlaubt') !== false,
+                'Error should mention Dateityp or Dateiendung, got: ' . $joined
+            );
+
             unlink($invalidFile['tmp_name']);
             return true;
         });
-        
+
         $this->testRunner->addTest('File Upload - validateFileUpload File Too Large', function() {
             $largeFile = [
                 'name' => 'test.jpg',
@@ -756,7 +761,15 @@ class ComprehensiveTests {
     
     private function createTestFile($extension) {
         $path = $this->testDataPath . '/test.' . $extension;
-        file_put_contents($path, 'test content');
+        if (in_array(strtolower($extension), ['heic', 'heif'], true)) {
+            // Gueltiger ISO-BMFF-ftyp-Header mit heic-Brand fuer isIsoBmffHeic().
+            file_put_contents(
+                $path,
+                "\x00\x00\x00\x20" . 'ftyp' . 'heic' . "\x00\x00\x00\x00" . 'mif1heic'
+            );
+        } else {
+            file_put_contents($path, 'test content');
+        }
         return $path;
     }
 }

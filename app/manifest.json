@@ -1,0 +1,10 @@
+{
+  "name": "PC PhotoWall",
+  "short_name": "PhotoWall",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#2196F3",
+  "orientation": "portrait",
+  "icons": []
+}

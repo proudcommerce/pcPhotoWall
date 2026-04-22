@@ -6,7 +6,7 @@ ifeq ($(DOCKER_COMPOSE),)
 	DOCKER_COMPOSE := docker compose
 endif
 
-.PHONY: help clean setup prod-up prod-down prod-restart prod-logs prod-status dev-up dev-down dev-restart dev-logs dev-status test test-quick test-syntax backup backup-all restore restore-db list-backups
+.PHONY: help clean setup prod-up prod-down prod-restart prod-logs prod-status dev-up dev-down dev-restart dev-logs dev-status test test-quick test-syntax test-security test-security-unit test-security-integration test-schema backup backup-all restore restore-db list-backups
 
 # Standard-Ziel
 help:
@@ -36,6 +36,10 @@ help:
 	@echo "  make test                    - Alle Tests ausführen (benötigt: make dev-up)"
 	@echo "  make test-quick              - Schnelltests (benötigt: make dev-up)"
 	@echo "  make test-syntax             - PHP-Syntax-Prüfung (keine Dev-Umgebung nötig)"
+	@echo "  make test-security           - Security-Suite (Unit + Integration falls Dev läuft)"
+	@echo "  make test-security-unit      - Security-Unit-Tests (keine Dev-Umgebung nötig)"
+	@echo "  make test-security-integration - Security-Integration-Tests (benötigt: make dev-up)"
+	@echo "  make test-schema             - Schema-Integrity (Spalten/Indexes, benötigt: make dev-up)"
 	@echo ""
 	@echo "Backup & Restore:"
 	@echo "  make backup [slug]           - Spezifisches Event sichern (Bilder + Datenbank)"
@@ -157,6 +161,27 @@ test-quick:
 test-syntax:
 	@echo "Führe PHP-Syntax-Prüfung aus..."
 	./tests/run-tests.sh syntax
+
+# Security Test-Suite (Unit + Integration falls Dev verfuegbar)
+test-security:
+	@echo "Führe Security-Tests aus..."
+	./tests/run-tests.sh security
+
+# Security-Unit-Tests (kein Dev noetig)
+test-security-unit:
+	@echo "Führe Security-Unit-Tests aus..."
+	./tests/run-tests.sh security-unit
+
+# Security-Integration-Tests (benoetigt Dev-Umgebung)
+test-security-integration:
+	@echo "Führe Security-Integration-Tests aus..."
+	./tests/run-tests.sh security-integration
+
+# Schema-Integrity (Spalten/Indexes/FKs gegen MySQL)
+test-schema:
+	@echo "Führe Schema-Integrity-Tests aus..."
+	./tests/run-tests.sh schema
+
 
 # Backup & Wiederherstellungs-Befehle
 

@@ -4,9 +4,9 @@ header('Content-Type: application/json');
 require_once '../includes/functions.php';
 require_once '../config/database.php';
 
-// Check admin authentication
-if (!isset($_SESSION['admin_logged_in'])) {
-    sendErrorResponse('Nicht autorisiert');
+// Check admin authentication (inkl. Session-Timeout)
+if (!isAdminSessionValid()) {
+    sendErrorResponse('Nicht autorisiert', 401);
 }
 
 // Validate CSRF token

@@ -4,8 +4,8 @@ require_once '../includes/functions.php';
 require_once '../includes/geo.php';
 require_once '../config/database.php';
 
-// Check admin authentication
-if (!isset($_SESSION['admin_logged_in'])) {
+// Check admin authentication (inkl. Session-Timeout)
+if (!isAdminSessionValid()) {
     header('Location: index.php');
     exit;
 }
@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Ungültiger CSRF-Token. Bitte versuchen Sie es erneut.';
     } else {
     $name = sanitizeInput($_POST['name'] ?? '');
-    $latitude = !empty($_POST['latitude']) ? (float)$_POST['latitude'] : null;
-    $longitude = !empty($_POST['longitude']) ? (float)$_POST['longitude'] : null;
+    $latitude = (isset($_POST['latitude']) && $_POST['latitude'] !== '') ? (float)$_POST['latitude'] : null;
+    $longitude = (isset($_POST['longitude']) && $_POST['longitude'] !== '') ? (float)$_POST['longitude'] : null;
     $radiusMeters = (int)($_POST['radius_meters'] ?? GPS_DEFAULT_RADIUS_METERS);
     $displayMode = $_POST['display_mode'] ?? DEFAULT_DISPLAY_MODE;
     $displayCount = (int)($_POST['display_count'] ?? DEFAULT_DISPLAY_COUNT);
@@ -58,8 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Only validate GPS coordinates if GPS validation is required
-    if ($gpsValidationRequired && !GeoUtils::validateCoordinates($latitude, $longitude)) {
-        $errors[] = 'Ungültige GPS-Koordinaten';
+    if ($gpsValidationRequired) {
+        if ($latitude === null || $longitude === null || !GeoUtils::validateCoordinates($latitude, $longitude)) {
+            $errors[] = 'Ungültige GPS-Koordinaten';
+        }
     }
     
     if ($radiusMeters < 10 || $radiusMeters > 10000) {
@@ -85,40 +87,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $displayCount = 1; // Default to 1 if invalid
     }
     
-    // Handle logo upload
+    // Handle logo upload (mit voller MIME-/Size-/Bild-Validierung, max. 2 MB)
     $logoFilename = null;
     if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-        // Use event-specific upload paths
-        $uploadPaths = getEventUploadPaths($slug);
-        $uploadDir = $uploadPaths['logos_path'];
+        $logoErrors = validateLogoUpload($_FILES['logo']);
+        if (!empty($logoErrors)) {
+            $errors = array_merge($errors, $logoErrors);
+        } else {
+            $uploadPaths = getEventUploadPaths($slug);
+            $uploadDir = $uploadPaths['logos_path'];
+            ensureEventDirectories($slug);
 
-        // Ensure directory exists
-        ensureEventDirectories($slug);
-
-        $fileExtension = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        
-        if (in_array($fileExtension, $allowedExtensions)) {
+            $fileExtension = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
             $logoFilename = uniqid() . '_' . time() . '.' . $fileExtension;
             $uploadPath = $uploadDir . '/' . $logoFilename;
-            
+
             if (!move_uploaded_file($_FILES['logo']['tmp_name'], $uploadPath)) {
                 $errors[] = 'Fehler beim Hochladen des Logos';
+                $logoFilename = null;
             }
-        } else {
-            $errors[] = 'Ungültiges Logo-Format. Erlaubt: JPG, PNG, GIF, WebP';
         }
     }
 
     if (empty($errors)) {
+        $database = new Database();
+        $conn = $database->getConnection();
+        $transactionOpen = false;
         try {
-            $database = new Database();
-            $conn = $database->getConnection();
-
-            // Generate unique hash for the event
             $eventHash = generateEventHash();
-            
-            // Create event
+
+            $conn->beginTransaction();
+            $transactionOpen = true;
+
             $stmt = $conn->prepare("
                 INSERT INTO events (name, latitude, longitude, radius_meters, display_mode, display_count, display_interval, max_upload_size, show_username, show_date, overlay_opacity, gps_validation_required, moderation_required, note, is_active, logo_filename, show_logo, show_qr_code, show_display_link, show_gallery_link, upload_enabled, event_hash, event_slug)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -129,27 +129,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $displayCount, $displayInterval, $maxUploadSize, $showUsername, $showDate,
                 $overlayOpacity, $gpsValidationRequired, $moderationRequired, $note, $isActive, $logoFilename, $showLogo, $showQrCode, $showDisplayLink, $showGalleryLink, $uploadEnabled, $eventHash, $slug
             ]);
-            
+
             $eventId = $conn->lastInsertId();
-            
-            // Create display config
+
             $stmt = $conn->prepare("
-                INSERT INTO display_config (event_id, max_photos, display_mode, refresh_interval) 
+                INSERT INTO display_config (event_id, max_photos, display_mode, refresh_interval)
                 VALUES (?, ?, ?, ?)
             ");
-            
+
             $stmt->execute([
                 $eventId, $displayCount, $displayMode, $displayInterval
             ]);
-            
+
+            $conn->commit();
+            $transactionOpen = false;
+
             $success = 'Event erfolgreich erstellt!';
-            
-            // Redirect to event list after 2 seconds
             header("refresh:2;url=index.php");
-            
+
         } catch (Exception $e) {
+            if ($transactionOpen && $conn->inTransaction()) {
+                $conn->rollBack();
+            }
             error_log('Create event error: ' . $e->getMessage());
             $errors[] = 'Fehler beim Erstellen des Events.';
+            // Orphan-Schutz: Logo, das bereits verschoben wurde, wieder entfernen.
+            if (!empty($logoFilename)) {
+                $uploadPaths = getEventUploadPaths($slug);
+                $orphanPath = $uploadPaths['logos_path'] . '/' . $logoFilename;
+                if (is_file($orphanPath)) {
+                    @unlink($orphanPath);
+                }
+                $logoFilename = null;
+            }
         }
     }
     }
@@ -217,7 +229,7 @@ $csrfToken = generateCSRFToken();
                     <div class="form-group">
                         <label for="logo">Event-Logo (optional)</label>
                         <input type="file" id="logo" name="logo" accept="image/*">
-                        <small>Erlaubte Formate: JPG, PNG, GIF, SVG, WebP (max. 2MB)</small>
+                        <small>Erlaubte Formate: JPG, PNG, GIF, WebP (max. 2MB)</small>
                     </div>
                     
                     <div class="form-group">

@@ -4,8 +4,8 @@ require_once '../includes/functions.php';
 require_once '../includes/geo.php';
 require_once '../config/database.php';
 
-// Check admin authentication
-if (!isset($_SESSION['admin_logged_in'])) {
+// Check admin authentication (inkl. Session-Timeout)
+if (!isAdminSessionValid()) {
     header('Location: index.php');
     exit;
 }
@@ -113,9 +113,10 @@ try {
     }
     
 } catch (Exception $e) {
+    error_log('Event-Photos DB error: ' . $e->getMessage());
     $event = null;
     $photos = [];
-    $errorMessage = 'Datenbankfehler: ' . $e->getMessage();
+    $errorMessage = 'Datenbankfehler.';
 }
 
 $csrfToken = generateCSRFToken();

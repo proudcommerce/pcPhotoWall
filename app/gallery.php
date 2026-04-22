@@ -58,11 +58,12 @@ try {
     
     $eventId = $event['id'];
     
-    // Get photos for this event (only active ones)
+    // Get photos for this event (only active ones).
+    // GPS-Koordinaten werden NICHT ausgeliefert (Privacy) — nur aggregierte distance_meters.
     $stmt = $conn->prepare("
-        SELECT id, filename, original_name, username, latitude, longitude, 
+        SELECT id, filename, original_name, username,
                distance_meters, uploaded_at, file_size, mime_type, thumbnail_filename, resized_filename
-        FROM photos 
+        FROM photos
         WHERE event_id = ? AND is_active = 1
         ORDER BY uploaded_at DESC
     ");
@@ -110,7 +111,8 @@ try {
         'overlay_opacity' => 0.8
     ];
     $photos = [];
-    $errorMessage = 'Datenbankfehler: ' . $e->getMessage();
+    error_log('Gallery DB error: ' . $e->getMessage());
+    $errorMessage = 'Datenbankfehler. Bitte versuchen Sie es später erneut.';
 }
 
 $username = getUserSession();
@@ -184,22 +186,26 @@ $csrfToken = generateCSRFToken();
 
                 <div class="gallery-grid" id="galleryGrid">
                     <?php foreach ($photos as $photo): ?>
-                        <div class="gallery-item" 
-                             data-username="<?php echo htmlspecialchars($photo['username'] ?? ''); ?>"
-                             data-date="<?php echo $photo['uploaded_at']; ?>"
-                             data-original-name="<?php echo htmlspecialchars($photo['original_name'] ?? ''); ?>">
+                        <div class="gallery-item"
+                             data-username="<?php echo htmlspecialchars($photo['username'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                             data-date="<?php echo htmlspecialchars($photo['uploaded_at'], ENT_QUOTES, 'UTF-8'); ?>"
+                             data-original-name="<?php echo htmlspecialchars($photo['original_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             <div class="gallery-item-image">
-                                <img src="<?php echo $photo['thumbnail_url']; ?>" 
-                                     alt="<?php echo htmlspecialchars($photo['original_name'] ?? ''); ?>"
+                                <img src="<?php echo htmlspecialchars($photo['thumbnail_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     alt="<?php echo htmlspecialchars($photo['original_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                      loading="lazy"
-                                     onclick="openLightbox('<?php echo $photo['lightbox_url']; ?>', '<?php echo htmlspecialchars($photo['original_name'] ?? ''); ?>', '<?php echo htmlspecialchars($photo['username'] ?? ''); ?>', '<?php echo $photo['uploaded_at_formatted']; ?>')">
+                                     class="gallery-lightbox-trigger"
+                                     data-lightbox-url="<?php echo htmlspecialchars($photo['lightbox_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     data-lightbox-name="<?php echo htmlspecialchars($photo['original_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                                     data-lightbox-user="<?php echo htmlspecialchars($photo['username'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                                     data-lightbox-date="<?php echo htmlspecialchars($photo['uploaded_at_formatted'], ENT_QUOTES, 'UTF-8'); ?>">
                                 <div class="gallery-item-overlay">
                                     <div class="gallery-item-info">
                                         <?php if ($event['show_username'] && $photo['username']): ?>
-                                            <span class="username"><?php echo htmlspecialchars($photo['username'] ?? ''); ?></span>
+                                            <span class="username"><?php echo htmlspecialchars($photo['username'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
                                         <?php endif; ?>
                                         <?php if ($event['show_date']): ?>
-                                            <span class="date"><?php echo $photo['uploaded_at_formatted']; ?></span>
+                                            <span class="date"><?php echo htmlspecialchars($photo['uploaded_at_formatted'], ENT_QUOTES, 'UTF-8'); ?></span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -207,6 +213,20 @@ $csrfToken = generateCSRFToken();
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <script>
+                    document.querySelectorAll('.gallery-lightbox-trigger').forEach(function (img) {
+                        img.addEventListener('click', function () {
+                            if (typeof openLightbox === 'function') {
+                                openLightbox(
+                                    img.dataset.lightboxUrl,
+                                    img.dataset.lightboxName,
+                                    img.dataset.lightboxUser,
+                                    img.dataset.lightboxDate
+                                );
+                            }
+                        });
+                    });
+                </script>
             <?php endif; ?>
         </main>
     </div>

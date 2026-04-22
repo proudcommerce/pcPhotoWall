@@ -58,20 +58,22 @@ try {
             break;
     }
     
-    // Get photos (only active ones) - load ALL photos for slideshow
-    $sql = "SELECT id, filename, original_name, username, latitude, longitude, 
+    // Get photos (only active ones) - load ALL photos for slideshow.
+    // GPS-Koordinaten werden NICHT in die oeffentliche Response aufgenommen (Privacy);
+    // nur die bereits aggregierte distance_meters wird ausgeliefert, damit die UI "x m" anzeigen kann.
+    $sql = "SELECT id, filename, original_name, username,
                    distance_meters, uploaded_at, file_size, mime_type, resized_filename
-            FROM photos 
+            FROM photos
             WHERE event_id = ? AND is_active = 1
             {$orderBy}";
-    
+
     $stmt = $conn->prepare($sql);
     $stmt->execute([$eventId]);
     $photos = $stmt->fetchAll();
 
     // Get event-specific upload paths (event already loaded above)
     $uploadPaths = getEventUploadPaths($eventSlug);
-    
+
     // Add full URLs to photos
     foreach ($photos as &$photo) {
         // Use resized version for display if available, otherwise fallback to original
@@ -88,15 +90,12 @@ try {
     $stmt->execute([$eventId]);
     $totalCount = $stmt->fetch()['total'];
     
-    // Return response
+    // Return response — Event-Koordinaten werden bewusst NICHT ausgeliefert (Privacy).
     sendJSONResponse([
         'success' => true,
         'event' => [
             'id' => $event['id'],
             'name' => $event['name'],
-            'latitude' => $event['latitude'],
-            'longitude' => $event['longitude'],
-            'radius_meters' => $event['radius_meters'],
             'show_username' => (bool)$event['show_username'],
             'show_date' => (bool)$event['show_date'],
             'overlay_opacity' => (float)$event['overlay_opacity'],

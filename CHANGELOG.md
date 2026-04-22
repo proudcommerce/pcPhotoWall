@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.9.1] - 2026-04-22
+
+- Upload-Härtung: Extension-Whitelist zusätzlich zu MIME-Check, Script-Execution in `app/data/` per `.htaccess` (zwei Schichten) blockiert
+- Gallery-XSS behoben: Inline-onclick durch `data-lightbox-*` Attribute + JS-Event-Binding ersetzt, alle Photo-Felder HTML-escaped
+- Event-Löschung räumt `photos/`, `thumbnails/`, `logos/` inkl. Logo-Datei und leere Verzeichnisse vollständig auf
+- GPS-Leak geschlossen: `api/photos.php` und `gallery.php` geben weder Foto- noch Event-Koordinaten an das Frontend aus
+- Error-Disclosure entfernt: `$e->getMessage()` wird in keiner Client-Response mehr zurückgegeben
+- Admin-Session-Timeout (`isAdminSessionValid()`) für alle Admin-Endpoints aktiv (create-event, edit-event, event-photos, rotate-photo, toggle-photo-status)
+- HEIC-Upload: strengere MIME-Whitelist, neuer `validateLogoUpload()`-Helper (MIME + Extension + `getimagesize()` + 2 MB), ISO-BMFF `ftyp`-Brand-Check für `application/octet-stream`
+- Upload-Cleanup zentralisiert: `$createdFiles` + `$registerFile` + `$cleanupFiles` + `$failAndCleanup` in `api/upload.php` — GPS-Radius-, HEIC-Konvertierungs- und DB-Fehler hinterlassen keine Orphans mehr
+- Logo-Orphans beim Event-Update entfernt, Logo-Transaktionssicherheit und `delete_logo`-Flow korrigiert
+- GPS-Prüfung akzeptiert 0-Koordinaten, kein TypeError bei `null`
+- Thumbnails werden immer als echtes JPEG mit Alpha-Flatten geschrieben (`ImageProcessor::createThumbnail`)
+- `app/manifest.json` im DocumentRoot ergänzt
+- Neue Testsuiten: `SecurityUnitTests.php`, `SecurityIntegrationTests.php`, `SchemaIntegrityTests.php`
+- Dokumentation aktualisiert: CLAUDE.md (SHA-256, `make restore-db`, `password_verify`/Session-Regeneration, neue Tests, Env-Vars), README.md (Version-Badge, `ADMIN_PASSWORD_HASH`, `DB_ROOT_PASS`)
+- Codex-Review (6 Runden, 18 Findings behoben) unter `docs/codex-review.md` dokumentiert
+
 ## [1.9.0] - 2026-04-22
 
 - CSRF-Validation in Admin-Endpoints (Event löschen, Foto löschen, Event erstellen) ergänzt

@@ -4,7 +4,7 @@ require_once '../includes/functions.php';
 require_once '../config/database.php';
 
 // Admin authentication mit password_verify (bevorzugt ADMIN_PASSWORD_HASH).
-if (!isset($_SESSION['admin_logged_in'])) {
+if (!isAdminSessionValid()) {
     if (isset($_POST['admin_password'])) {
         $password = (string)$_POST['admin_password'];
 
@@ -19,13 +19,14 @@ if (!isset($_SESSION['admin_logged_in'])) {
         if ($valid) {
             session_regenerate_id(true);
             $_SESSION['admin_logged_in'] = true;
+            $_SESSION['admin_last_activity'] = time();
         } else {
             error_log('Admin login failed from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
             $error = 'Falsches Passwort';
         }
     }
-    
-    if (!isset($_SESSION['admin_logged_in'])) {
+
+    if (!isAdminSessionValid()) {
         ?>
         <!DOCTYPE html>
         <html lang="de">
@@ -76,35 +77,56 @@ if (isset($_POST['delete_event']) && isset($_POST['event_id'])) {
     try {
         $database = new Database();
         $conn = $database->getConnection();
-        
-        // Get event info before deletion
-        $stmt = $conn->prepare("SELECT name FROM events WHERE id = ?");
+
+        // Get event info (incl. slug + logo) before deletion
+        $stmt = $conn->prepare("SELECT name, event_slug, logo_filename FROM events WHERE id = ?");
         $stmt->execute([$eventId]);
         $event = $stmt->fetch();
-        
+
         if ($event) {
+            $eventSlug = $event['event_slug'];
+            $uploadPaths = $eventSlug ? getEventUploadPaths($eventSlug) : null;
+
             // Get photos to delete files
-            $stmt = $conn->prepare("SELECT filename FROM photos WHERE event_id = ?");
+            $stmt = $conn->prepare("SELECT filename, thumbnail_filename, resized_filename FROM photos WHERE event_id = ?");
             $stmt->execute([$eventId]);
             $photos = $stmt->fetchAll();
-            
-            // Delete photos from database (cascade will handle this, but we need to delete files)
-            foreach ($photos as $photo) {
-                $originalPath = UPLOAD_PATH . '/' . $photo['filename'];
-                $resizedPath = UPLOAD_PATH . '/resized_' . $photo['filename'];
-                
-                if (file_exists($originalPath)) {
-                    unlink($originalPath);
+
+            if ($uploadPaths) {
+                foreach ($photos as $photo) {
+                    foreach ([
+                        $uploadPaths['photos_path'] . '/' . $photo['filename'],
+                        $photo['resized_filename'] ? $uploadPaths['photos_path'] . '/' . $photo['resized_filename'] : null,
+                        $photo['thumbnail_filename'] ? $uploadPaths['thumbnails_path'] . '/' . $photo['thumbnail_filename'] : null,
+                    ] as $path) {
+                        if ($path && is_file($path)) {
+                            unlink($path);
+                        }
+                    }
                 }
-                if (file_exists($resizedPath)) {
-                    unlink($resizedPath);
+
+                // Logo und leere Event-Verzeichnisse entfernen
+                if (!empty($event['logo_filename'])) {
+                    $logoPath = $uploadPaths['logos_path'] . '/' . $event['logo_filename'];
+                    if (is_file($logoPath)) {
+                        unlink($logoPath);
+                    }
+                }
+                foreach (['photos_path', 'thumbnails_path', 'logos_path'] as $pathKey) {
+                    if (is_dir($uploadPaths[$pathKey])) {
+                        @rmdir($uploadPaths[$pathKey]);
+                    }
+                }
+                $eventRoot = dirname($uploadPaths['photos_path']);
+                if (is_dir($eventRoot)) {
+                    @rmdir($eventRoot);
                 }
             }
-            
+
             // Delete event (cascade will delete photos and display_config)
             $stmt = $conn->prepare("DELETE FROM events WHERE id = ?");
             $stmt->execute([$eventId]);
-            
+
             $successMessage = 'Event "' . $event['name'] . '" wurde erfolgreich gelöscht!';
         }
     } catch (Exception $e) {
