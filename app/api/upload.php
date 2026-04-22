@@ -327,6 +327,6 @@ try {
     
 } catch (Exception $e) {
     error_log("Upload error: " . $e->getMessage());
-    sendErrorResponse('Server-Fehler beim Upload: ' . $e->getMessage(), 500);
+    sendErrorResponse('Server-Fehler beim Upload', 500);
 }
 ?>

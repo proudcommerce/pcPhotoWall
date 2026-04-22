@@ -3,14 +3,24 @@ require_once '../config/config.php';
 require_once '../includes/functions.php';
 require_once '../config/database.php';
 
-// Simple admin authentication (in production, use proper authentication)
+// Admin authentication mit password_verify (bevorzugt ADMIN_PASSWORD_HASH).
 if (!isset($_SESSION['admin_logged_in'])) {
     if (isset($_POST['admin_password'])) {
-        $password = $_POST['admin_password'];
-        // Simple password check (in production, use proper password hashing)
-        if ($password === ADMIN_PASSWORD) {
+        $password = (string)$_POST['admin_password'];
+
+        $hash = ADMIN_PASSWORD_HASH;
+        if ($hash === '' && ADMIN_PASSWORD !== '') {
+            // Fallback: kein Hash konfiguriert, vergleiche Plain-Text in konstanter Zeit.
+            $valid = hash_equals(ADMIN_PASSWORD, $password);
+        } else {
+            $valid = $hash !== '' && password_verify($password, $hash);
+        }
+
+        if ($valid) {
+            session_regenerate_id(true);
             $_SESSION['admin_logged_in'] = true;
         } else {
+            error_log('Admin login failed from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
             $error = 'Falsches Passwort';
         }
     }
@@ -58,8 +68,11 @@ if (isset($_GET['logout'])) {
 
 // Handle event deletion
 if (isset($_POST['delete_event']) && isset($_POST['event_id'])) {
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $errorMessage = 'Ungültiger CSRF-Token.';
+    } else {
     $eventId = (int)$_POST['event_id'];
-    
+
     try {
         $database = new Database();
         $conn = $database->getConnection();
@@ -95,14 +108,16 @@ if (isset($_POST['delete_event']) && isset($_POST['event_id'])) {
             $successMessage = 'Event "' . $event['name'] . '" wurde erfolgreich gelöscht!';
         }
     } catch (Exception $e) {
-        $errorMessage = 'Fehler beim Löschen des Events: ' . $e->getMessage();
+        error_log('Delete event error: ' . $e->getMessage());
+        $errorMessage = 'Fehler beim Löschen des Events.';
+    }
     }
 }
 
 try {
     $database = new Database();
     $conn = $database->getConnection();
-    
+
     // Get all events
     $stmt = $conn->prepare("SELECT * FROM events ORDER BY created_at DESC");
     $stmt->execute();

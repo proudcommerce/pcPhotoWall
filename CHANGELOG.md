@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.0] - 2026-04-22
+
+- CSRF-Validation in Admin-Endpoints (Event löschen, Foto löschen, Event erstellen) ergänzt
+- Admin-Login auf password_hash / password_verify umgestellt (ADMIN_PASSWORD_HASH); Session-Regeneration nach Login
+- Stored-XSS im Event-Notiz-Feld durch Plain-Text-Ausgabe behoben
+- Session-Cookie-Flags (HttpOnly, Secure, SameSite) werden nicht mehr durch doppeltes session_start() umgangen
+- SVG-Upload als Event-Logo entfernt (XSS-Vektor)
+- Fehlermeldungen an unauthentifizierten Endpoints geben $e->getMessage() nicht mehr preis
+- composer.json / composer.lock / vendor / includes / config über .htaccess geblockt
+- Getrennte Env-Vars für DB-Root und App-User (DB_ROOT_PASS)
+- .gitignore um Private-Keys und generische .env.* ergänzt
+
 ## [1.8.1] - 2025-10-21
 
 - Docker Compose Erkennung verbessert

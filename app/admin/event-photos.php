@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/config.php';
 require_once '../includes/functions.php';
 require_once '../includes/geo.php';
@@ -29,8 +28,11 @@ $eventId = $event['id'];
 
 // Handle photo deletion
 if (isset($_POST['delete_photo']) && isset($_POST['photo_id'])) {
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $errorMessage = 'Ungültiger CSRF-Token.';
+    } else {
     $photoId = (int)$_POST['photo_id'];
-    
+
     try {
         $database = new Database();
         $conn = $database->getConnection();
@@ -71,7 +73,9 @@ if (isset($_POST['delete_photo']) && isset($_POST['photo_id'])) {
             $successMessage = 'Foto wurde erfolgreich gelöscht!';
         }
     } catch (Exception $e) {
-        $errorMessage = 'Fehler beim Löschen des Fotos: ' . $e->getMessage();
+        error_log('Delete photo error: ' . $e->getMessage());
+        $errorMessage = 'Fehler beim Löschen des Fotos.';
+    }
     }
 }
 

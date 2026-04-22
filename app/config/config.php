@@ -70,7 +70,10 @@ define('UPLOAD_URL', APP_URL . '/data'); // Will be set per event
 // Security
 define('CSRF_TOKEN_NAME', $_ENV['CSRF_TOKEN_NAME'] ?? 'csrf_token');
 define('SESSION_TIMEOUT', (int)($_ENV['SESSION_TIMEOUT'] ?? 3600)); // 1 hour
-define('ADMIN_PASSWORD', $_ENV['ADMIN_PASSWORD'] ?? 'ChangeThisSecurePassword123!');
+// Prefer pre-hashed password (ADMIN_PASSWORD_HASH). Falls nur Plain-Text in .env vorhanden,
+// wird beim ersten Aufruf intern gehasht (Fallback für Bestandsinstallationen).
+define('ADMIN_PASSWORD_HASH', $_ENV['ADMIN_PASSWORD_HASH'] ?? '');
+define('ADMIN_PASSWORD', $_ENV['ADMIN_PASSWORD'] ?? '');
 
 // Error Reporting - Production safe
 $isProduction = ($_ENV['APP_ENV'] ?? 'development') === 'production';

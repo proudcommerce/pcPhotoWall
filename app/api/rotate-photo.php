@@ -1,7 +1,6 @@
 <?php
-session_start();
-header('Content-Type: application/json');
 require_once '../config/config.php';
+header('Content-Type: application/json');
 require_once '../includes/functions.php';
 require_once '../config/database.php';
 
@@ -109,6 +108,6 @@ try {
     
 } catch (Exception $e) {
     error_log("Rotate photo error: " . $e->getMessage());
-    sendErrorResponse('Fehler beim Rotieren des Fotos: ' . $e->getMessage());
+    sendErrorResponse('Fehler beim Rotieren des Fotos');
 }
 ?>

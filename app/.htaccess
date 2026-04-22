@@ -9,17 +9,23 @@ RewriteEngine On
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 </IfModule>
 
-# Deny access to sensitive files
-<FilesMatch "\.(env|log|ini|conf)$">
-    Order Deny,Allow
-    Deny from all
+# Deny access to sensitive files (Konfiguration, Logs, Markdown, Lock-Dateien, Keys)
+<FilesMatch "\.(env|log|ini|conf|lock|md|sql|bak|backup|pem|key|p12|pfx|sh)$">
+    Require all denied
 </FilesMatch>
 
-# Deny access to .env files (including .env.example, .env.local, etc.)
-<FilesMatch "^\.env">
-    Order Deny,Allow
-    Deny from all
+# Composer-Dateien blocken
+<FilesMatch "^composer\.(json|lock)$">
+    Require all denied
 </FilesMatch>
+
+# Deny access to dotfiles (.env, .htaccess, .git, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Deny access to internal directories (vendor, includes, config, scripts, tests)
+RewriteRule ^(vendor|includes|config|scripts|tests)(/.*)?$ - [F,L]
 
 # Handle static assets - MUST be first to avoid conflicts
 RewriteRule ^assets/ - [L]

@@ -120,6 +120,6 @@ try {
     
 } catch (Exception $e) {
     error_log("Photos API error: " . $e->getMessage());
-    sendErrorResponse('Server-Fehler beim Laden der Fotos: ' . $e->getMessage(), 500);
+    sendErrorResponse('Server-Fehler beim Laden der Fotos', 500);
 }
 ?>

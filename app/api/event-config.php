@@ -38,6 +38,7 @@ try {
     ]);
     
 } catch (Exception $e) {
-    sendErrorResponse('Fehler beim Laden der Event-Konfiguration: ' . $e->getMessage());
+    error_log('Event-Config API error: ' . $e->getMessage());
+    sendErrorResponse('Fehler beim Laden der Event-Konfiguration');
 }
 ?>

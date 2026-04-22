@@ -124,7 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("refresh:2;url=edit-event.php?slug=" . urlencode($eventSlug));
             }
         } catch (Exception $e) {
-            $errors[] = 'Fehler beim Löschen des Logos: ' . $e->getMessage();
+            error_log('Delete logo error: ' . $e->getMessage());
+            $errors[] = 'Fehler beim Löschen des Logos.';
         }
     }
     
@@ -139,20 +140,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ensureEventDirectories($event['event_slug']);
         
         $fileExtension = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'];
-        
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
         if (in_array($fileExtension, $allowedExtensions)) {
             $logoFilename = uniqid() . '_' . time() . '.' . $fileExtension;
             $uploadPath = $uploadDir . '/' . $logoFilename;
-            
+
             if (!move_uploaded_file($_FILES['logo']['tmp_name'], $uploadPath)) {
                 $errors[] = 'Fehler beim Hochladen des Logos';
             }
         } else {
-            $errors[] = 'Ungültiges Logo-Format. Erlaubt: JPG, PNG, GIF, SVG, WebP';
+            $errors[] = 'Ungültiges Logo-Format. Erlaubt: JPG, PNG, GIF, WebP';
         }
     }
-    
+
     if (empty($errors)) {
         try {
             $database = new Database();
@@ -206,7 +207,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("refresh:2;url=edit-event.php?slug=" . urlencode($eventSlug));
             
         } catch (Exception $e) {
-            $errors[] = 'Fehler beim Aktualisieren des Events: ' . $e->getMessage();
+            error_log('Update event error: ' . $e->getMessage());
+            $errors[] = 'Fehler beim Aktualisieren des Events.';
         }
     }
     }
@@ -308,22 +310,11 @@ $csrfToken = generateCSRFToken();
                         </div>
                         
                         <div class="form-group">
-                            <label for="note">Event-Notiz (HTML erlaubt):</label>
-                            <textarea id="note" name="note" rows="6" 
-                                      placeholder="Optionale Notiz, die beim Upload angezeigt wird. HTML-Tags sind erlaubt.
-
-Beispiel:
-<strong>Wichtige Hinweise:</strong>
-<ul>
-  <li>Fotos müssen am Event-Standort aufgenommen werden</li>
-  <li>Maximale Dateigröße: 10MB</li>
-  <li>Erlaubte Formate: JPG, PNG, GIF, WebP</li>
-</ul>
-
-<em>Vielen Dank für Ihre Teilnahme!</em>"><?php echo htmlspecialchars($event['note'] ?? ''); ?></textarea>
+                            <label for="note">Event-Notiz:</label>
+                            <textarea id="note" name="note" rows="6"
+                                      placeholder="Optionale Notiz, die beim Upload angezeigt wird. Nur Plain-Text, Zeilenumbrüche werden übernommen."><?php echo htmlspecialchars($event['note'] ?? ''); ?></textarea>
                             <small>
-                                <strong>HTML-Tags erlaubt:</strong> &lt;strong&gt;, &lt;em&gt;, &lt;br&gt;, &lt;h1&gt;-&lt;h6&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;p&gt;, &lt;a&gt;, &lt;blockquote&gt;, &lt;code&gt;<br>
-                                Diese Notiz wird prominent auf der Upload-Seite angezeigt.
+                                Diese Notiz wird als Plain-Text auf der Upload-Seite angezeigt. HTML wird nicht interpretiert.
                             </small>
                         </div>
                         

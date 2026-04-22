@@ -8,7 +8,8 @@ try {
     $database = new Database();
     $database->createTables();
 } catch (Exception $e) {
-    die('Datenbankfehler: ' . $e->getMessage());
+    error_log('Database initialization error: ' . $e->getMessage());
+    die('Datenbankfehler. Bitte versuchen Sie es später erneut.');
 }
 
 // Get current event
@@ -109,7 +110,7 @@ $csrfToken = generateCSRFToken();
                             <?php if ($currentEvent && !empty($currentEvent['note'])): ?>
                             <div class="upload-divider"></div>
                             <div class="event-note-in-upload">
-                                <?php echo $currentEvent['note']; ?>
+                                <?php echo nl2br(htmlspecialchars($currentEvent['note'], ENT_QUOTES, 'UTF-8')); ?>
                             </div>
                             <?php endif; ?>
                         </div>

@@ -4,8 +4,8 @@
 # Environment
 .env
 app/.env
-.env.local
-.env.production
+.env.*
+!.env.example
 
 # Upload directories
 /app/uploads/
@@ -28,7 +28,6 @@ cache/
 
 # Claude Code
 .claude/
-CLAUDE.md
 
 # OS
 .DS_Store
@@ -44,6 +43,14 @@ Thumbs.db
 # Database
 *.sql
 *.db
+
+# Secrets / Keys / Zertifikate
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
 
 # Backup files
 *.bak
