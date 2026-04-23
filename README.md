@@ -1,6 +1,6 @@
 # 📸 pcPhotoWall
 
-[![Version](https://img.shields.io/badge/version-1.9.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.9.2-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4.svg)](https://www.php.net/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -57,10 +57,11 @@ make dev-up
 # Demo-Event wird automatisch erstellt
 
 # 4. Öffnen
-# App:         http://localhost:4000
-# Admin:       http://localhost:4000/admin/
-# phpMyAdmin:  http://localhost:8081
-# Demo-Event:  http://localhost:4000/demo-event
+# Ports via .env konfigurierbar (Defaults: APP_PORT=4000, PHPMYADMIN_PORT=8081, DB_PORT=3306)
+# App:         http://localhost:${APP_PORT}
+# Admin:       http://localhost:${APP_PORT}/admin/
+# phpMyAdmin:  http://localhost:${PHPMYADMIN_PORT}
+# Demo-Event:  http://localhost:${APP_PORT}/demo-event
 ```
 
 **Standard-Zugangsdaten:**
@@ -275,6 +276,16 @@ APP_NAME=pcPhotoWall         # Anzeigename der App
 APP_URL=http://localhost:4000 # Basis-URL (mit https:// für Production)
 APP_ENV=development           # development|production
 ```
+
+#### Host-Ports (Docker)
+
+```bash
+APP_PORT=4000         # Web-Container (Apache) auf dem Host (Default 4000)
+DB_PORT=3306          # MariaDB auf dem Host, nur Dev-Compose (Default 3306)
+PHPMYADMIN_PORT=8081  # phpMyAdmin auf dem Host, nur Dev-Compose (Default 8081)
+```
+
+**Hinweis:** docker-compose nutzt `${APP_PORT:-4000}` etc. — bei fehlender `.env`/Variable greifen die Defaults. `APP_URL` muss bei abweichendem Port manuell angepasst werden.
 
 #### Upload Configuration
 

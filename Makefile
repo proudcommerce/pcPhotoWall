@@ -6,6 +6,12 @@ ifeq ($(DOCKER_COMPOSE),)
 	DOCKER_COMPOSE := docker compose
 endif
 
+# Ports aus .env lesen (fuer Statusausgaben). Fallbacks: 4000/8081.
+APP_PORT ?= $(shell grep -E '^APP_PORT=' .env 2>/dev/null | cut -d= -f2 | tr -d ' ')
+APP_PORT := $(if $(APP_PORT),$(APP_PORT),4000)
+PHPMYADMIN_PORT ?= $(shell grep -E '^PHPMYADMIN_PORT=' .env 2>/dev/null | cut -d= -f2 | tr -d ' ')
+PHPMYADMIN_PORT := $(if $(PHPMYADMIN_PORT),$(PHPMYADMIN_PORT),8081)
+
 .PHONY: help clean setup prod-up prod-down prod-restart prod-logs prod-status dev-up dev-down dev-restart dev-logs dev-status test test-quick test-syntax test-security test-security-unit test-security-integration test-schema backup backup-all restore restore-db list-backups
 
 # Standard-Ziel
@@ -54,7 +60,7 @@ help:
 prod-up:
 	@echo "Starte PC PhotoWall Produktionsumgebung..."
 	$(DOCKER_COMPOSE) up -d
-	@echo "Produktionsumgebung gestartet! Erreichbar unter http://localhost:4000"
+	@echo "Produktionsumgebung gestartet! Erreichbar unter http://localhost:$(APP_PORT)"
 
 # Produktionsumgebung stoppen
 prod-down:
@@ -124,8 +130,8 @@ dev-up:
 	@echo "Starte PC PhotoWall Entwicklungsumgebung mit phpMyAdmin..."
 	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up -d
 	@echo "Entwicklungsumgebung gestartet!"
-	@echo "Webanwendung: http://localhost:4000"
-	@echo "phpMyAdmin: http://localhost:8081"
+	@echo "Webanwendung: http://localhost:$(APP_PORT)"
+	@echo "phpMyAdmin: http://localhost:$(PHPMYADMIN_PORT)"
 
 # Entwicklungsumgebung stoppen
 dev-down:

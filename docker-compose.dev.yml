@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.dev
       target: development
     ports:
-      - "4000:80"
+      - "${APP_PORT:-4000}:80"
     volumes:
       # Mount entire app directory for live code changes
       - ./app:/var/www/html
@@ -37,7 +37,7 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASS}
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       # Use separate named volume for dev environment
       - photowall-db-data-dev:/var/lib/mysql
@@ -62,7 +62,7 @@ services:
       PMA_PASSWORD: ${DB_PASS}
       MYSQL_ROOT_PASSWORD: ${DB_PASS}
     ports:
-      - "8081:80"
+      - "${PHPMYADMIN_PORT:-8081}:80"
     depends_on:
       db:
         condition: service_healthy

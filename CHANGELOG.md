@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2] - 2026-04-23
+
+- Host-Ports (`APP_PORT`, `DB_PORT`, `PHPMYADMIN_PORT`) ueber `.env` konfigurierbar; docker-compose nutzt `${APP_PORT:-4000}`, `${DB_PORT:-3306}`, `${PHPMYADMIN_PORT:-8081}`
+- Makefile (`dev-up`, `prod-up`) gibt die tatsaechlich konfigurierten Host-Ports aus, liest sie aus `.env`
+- `.env.example` um neue Port-Keys ergaenzt
+- README.md und CLAUDE.md: neuer Konfigurations-Block "Host-Ports (Docker)", URL-Beispiele nutzen Platzhalter
+
 ## [1.9.1] - 2026-04-22
 
 - Upload-Härtung: Extension-Whitelist zusätzlich zu MIME-Check, Script-Execution in `app/data/` per `.htaccess` (zwei Schichten) blockiert

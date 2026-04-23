@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       target: production
     ports:
-      - "4000:80"
+      - "${APP_PORT:-4000}:80"
     volumes:
       # Mount entire app directory for live code changes (same as dev mode)
       - ./app:/var/www/html

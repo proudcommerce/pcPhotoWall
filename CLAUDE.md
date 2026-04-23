@@ -92,11 +92,14 @@ make restore-db backups/picturewall_backup_demo-event_20250115_143022.tar.gz
 Use `restore-db-only` when photos are intact but database needs recovery.
 
 ### Access URLs
-- Main app: http://localhost:4000
-- Admin interface: http://localhost:4000/admin/
-- Display mode: http://localhost:4000/[event-slug]/display
-- Gallery: http://localhost:4000/[event-slug]/gallery
-- phpMyAdmin (dev only): http://localhost:8081
+
+Host-Ports sind in `.env` konfigurierbar (`APP_PORT`, `DB_PORT`, `PHPMYADMIN_PORT`). Defaults unten in Klammern, falls die Keys fehlen.
+
+- Main app: `http://localhost:${APP_PORT:-4000}`
+- Admin interface: `http://localhost:${APP_PORT:-4000}/admin/`
+- Display mode: `http://localhost:${APP_PORT:-4000}/[event-slug]/display`
+- Gallery: `http://localhost:${APP_PORT:-4000}/[event-slug]/gallery`
+- phpMyAdmin (dev only): `http://localhost:${PHPMYADMIN_PORT:-8081}`
 
 ## Architecture Overview
 
